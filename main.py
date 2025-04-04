@@ -28,6 +28,7 @@ def initialize_quiz():
         })
 
     st.session_state.quiz_data = quiz_data
+    st.session_state.selected = None
     st.session_state.current_question_idx = 0
     st.session_state.correct_count = 0
 
@@ -71,13 +72,10 @@ def show_question():
                 key=f"radio_q{idx}"
             )
             selected = []
-            if st.button("Submit", key=f"submit_btn_{idx}"):
-                if user_choice:
-                    selected_label = user_choice.split('.')[0]  # "A"
-                    selected.append(ord(selected_label) - ord('A'))
-                    process_result(q_data, selected)
-                else:
-                    st.warning("Please select an answer.")
+            if user_choice:
+                selected_label = user_choice.split('.')[0]  # "A"
+                selected.append(ord(selected_label) - ord('A'))
+
         else:
             selected = []
             for i, answer in enumerate(answers):
@@ -90,11 +88,19 @@ def show_question():
                 if is_checked:
                     selected.append(i)
 
-            if st.button("Submit", key=f"submit_btn_{idx}"):
+        if st.button("Submit"):
+            if st.session_state.selected:
+                st.session_state.selected = None
+                st.session_state.current_question_idx += 1
+                st.rerun()
+            else:
                 if not selected:
                     st.warning("Please select at least one answer.")
                 else:
-                    process_result(q_data, selected)
+                    st.session_state.selected = selected
+
+        if st.session_state.selected:
+            process_result(q_data, st.session_state.selected)
     else:
         st.success("You have completed all the questions!")
 
@@ -113,7 +119,6 @@ def process_result(q_data, selected):
         st.error(message.strip())
 
     st.info("##### Explanation\n" + q_data["explain"])
-    st.session_state.current_question_idx += 1
 
 
 def reset_session():
