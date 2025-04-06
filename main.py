@@ -64,6 +64,19 @@ def show_question():
                     st.session_state.selected = selected
         if st.session_state.get('selected', None):
             process_result(q_data, st.session_state.selected)
+
+            prompt = f"""
+            An AI designed to help users effectively learn and master problems.
+    
+            ## question
+            {q_data.question}
+    
+            ## Correct answer candidate
+            {[i[0] for i in q_data.answers]}
+            """
+            from urllib.parse import quote
+            url_encoded = quote(prompt)
+            st.link_button("GPT", url=f'http://chatgpt.com/?model=gpt-4o&q={url_encoded}')
     else:
         st.success("You have completed all the questions!")
 
