@@ -1,7 +1,8 @@
 import streamlit as st
+from urllib.parse import quote
 
 from dto import Question
-from quiz_db import get_quiz, get_total_count, initialize_quiz
+from quiz_db import get_quiz, get_total_count
 
 
 def show_question():
@@ -74,7 +75,6 @@ def show_question():
             ## Correct answer candidate
             {[i[0] for i in q_data.answers]}
             """
-            from urllib.parse import quote
             url_encoded = quote(prompt)
             st.link_button("GPT", url=f'http://chatgpt.com/?model=gpt-4o&q={url_encoded}')
     else:
