@@ -113,6 +113,5 @@ def main():
     st.title("Question bank")
     show_question()
 
-
 if __name__ == "__main__":
     main()
