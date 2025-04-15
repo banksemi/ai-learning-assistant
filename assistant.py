@@ -30,10 +30,12 @@ class Assistant:
             ## Question
             {self.question.question}
 
-            ## Correct answer candidate
+            ## Candidate
             {[i[0] for i in self.question.answers]}
             
-            Please read the question and choose the correct answer.
+            Please read the question and choose the appropriate answer.
+            If there are 4 options, the length of 'answer' list must be 4.
+            'answer' is the answer the user must choose. If the question asks for a negative answer, then the negative is true.
         """
         response = client.models.generate_content(
             model="gemini-2.0-flash",
