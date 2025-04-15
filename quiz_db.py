@@ -4,7 +4,7 @@ import copy
 import os
 import json
 
-from dto import Question
+from question import Question
 
 def initialize_quiz():
     json_datas = []
