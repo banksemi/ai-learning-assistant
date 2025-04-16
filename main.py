@@ -39,7 +39,7 @@ def show_question():
 
     st.markdown(f"**Question {idx + 1}.** {q_data.question}")
 
-    selected = []
+    selected = set()
     if sum([i[1] for i in answers]) == 1:
         user_choice = st.radio(
             label="Please choose the correct answer:",
@@ -49,7 +49,7 @@ def show_question():
         )
         if user_choice:
             selected_label = user_choice.split('.')[0]  # "A"
-            selected.append(ord(selected_label) - ord('A'))
+            selected.add(selected_label)
 
     else:
         for i, answer in enumerate(answers):
@@ -60,7 +60,7 @@ def show_question():
                 key=cb_key
             )
             if is_checked:
-                selected.append(i)
+                selected.add(chr(ord('A') + i))
 
     if st.button("Submit"):
         if st.session_state.get('selected', None):
@@ -75,8 +75,8 @@ def show_question():
                 st.session_state.selected = selected
 
                 with st.status("Verifying the question using AI...") as status:
-                    ans = Assistant(get_quiz(idx)).get_answer()
-                    if [i[1] for i in q_data.answers] != ans:
+                    ans = Assistant(q_data).get_answer()
+                    if {chr(ord('A') + i) for i, item in enumerate(q_data.answers) if item[1] == True} != ans:
                         status.update(
                             label="The AI answer and the actual answer are different.", state="error", expanded=False
                         )
@@ -130,8 +130,8 @@ def show_question():
 
 
 
-def process_result(q_data: Question, selected):
-    answer = [i for i, item in enumerate(q_data.answers) if item[1] == True]
+def process_result(q_data: Question, selected: set[str]):
+    answer = {chr(ord('A') + i) for i, item in enumerate(q_data.answers) if item[1] == True}
     if answer == selected:
         st.session_state.correct.add(st.session_state.get("current_question_idx", 0))
         st.success("✅ Correct answer!")

@@ -5,7 +5,7 @@ from pydantic import BaseModel
 import copy
 
 class JSONModel(BaseModel):
-  answer: list[bool]
+  answer_numbers: list[str]
 
 class TranslateModel(BaseModel):
   question: str
@@ -21,20 +21,20 @@ class Assistant:
         self.chat = client.chats.create(model="gemini-2.0-flash")
 	
     def translate(self):
+        input_json = json.dumps({
+            "question": self.question.question,
+            'answers': [i[0] for i in self.question.answers],
+            'explain': self.question.explain
+        })
         prompt = f"""
-            ## `question`
-            {self.question.question}
-
-            ## `answers`
-            {[i[0] for i in self.question.answers]}
-            
-            ## `explain`
-            {self.question.explain}
-            
 			Please change the language to Korean. 
 			However, technical or service terms and data values must remain original.
 			Also, don't abbreviate all the detailed information (it may be required for the exam).
 			
+			## input
+			```
+			{input_json}
+			```
         """
         response = client.models.generate_content(
             model="gemini-2.0-flash",
@@ -49,7 +49,7 @@ class Assistant:
         translate_question.question = ai_response.question
         translate_question.explain = ai_response.explain
         for i, translated in enumerate(ai_response.answers):
-        	translate_question.answers[i] = (translated, self.question.answers[i][1])
+            translate_question.answers[i] = (translated, self.question.answers[i][1])
         return translate_question
         
     def add_user_message(self, message):
@@ -64,7 +64,7 @@ class Assistant:
 
         self.messages.append({"role": "assistant", "content": line})
 
-    def get_answer(self) -> list[bool]:
+    def get_answer(self) -> set[str]:
         prompt = f"""
             ## Question
             {self.question.question}
@@ -72,9 +72,8 @@ class Assistant:
             ## Candidate
             {[i[0] for i in self.question.answers]}
             
-            Please read the question and choose the appropriate answer.
-            If there are 4 options, the length of 'answer' list must be 4.
-            'answer' is the answer the user must choose. If the question asks for a negative answer, then the negative is true.
+            Please read the question and find the appropriate answer.
+            example: ["A", "C"]
         """
         response = client.models.generate_content(
             model="gemini-2.0-flash",
@@ -84,4 +83,4 @@ class Assistant:
                 'response_schema': JSONModel
             }
         )
-        return response.parsed.answer
+        return set(response.parsed.answer_numbers)
