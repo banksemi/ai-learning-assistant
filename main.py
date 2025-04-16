@@ -8,12 +8,16 @@ from assistant import Assistant
 
 def show_question():
     idx = st.session_state.get("current_question_idx", 0)
-    q_data = get_quiz(idx)
+    q_data = st.session_state.get(f'translated_{idx}', None)
+    if q_data is None:
+        q_data = Assistant(get_quiz(idx)).translate()
+        st.session_state[f'translated_{idx}'] = q_data
+        
     total_questions = get_total_count()
 
     rate = 0
     if idx > 0:
-        rate = round(st.session_state.correct_count * 100 / idx)
+        rate = round(len(st.session_state.correct) * 100.0 / idx)
 
     st.markdown(
         f"""  
@@ -33,7 +37,7 @@ def show_question():
         return
     answers = q_data.answers
 
-    st.write(f"**Question {idx + 1}.** {q_data.question}")
+    st.markdown(f"**Question {idx + 1}.** {q_data.question}")
 
     selected = []
     if sum([i[1] for i in answers]) == 1:
@@ -71,7 +75,7 @@ def show_question():
                 st.session_state.selected = selected
 
                 with st.status("Verifying the question using AI...") as status:
-                    ans = Assistant(q_data).get_answer()
+                    ans = Assistant(get_quiz(idx)).get_answer()
                     if [i[1] for i in q_data.answers] != ans:
                         status.update(
                             label="The AI answer and the actual answer are different.", state="error", expanded=False
@@ -129,7 +133,7 @@ def show_question():
 def process_result(q_data: Question, selected):
     answer = [i for i, item in enumerate(q_data.answers) if item[1] == True]
     if answer == selected:
-        st.session_state.correct_count += 1
+        st.session_state.correct.add(st.session_state.get("current_question_idx", 0))
         st.success("✅ Correct answer!")
     else:
         message = [i[0] for i in q_data.answers if i[1]]
@@ -149,11 +153,11 @@ def main():
     if st.session_state.get('initialized') is None:
         st.session_state.initialized = True
         st.session_state.current_question_idx = 0
-        st.session_state.correct_count = 0
+        st.session_state.correct = set()
         st.session_state.assistant = None
 
     st.set_page_config(page_title="Question bank", layout="centered")
-    st.title("Question bank")
+    # st.title("Question bank")
     show_question()
 
 if __name__ == "__main__":

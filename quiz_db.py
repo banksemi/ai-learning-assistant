@@ -24,7 +24,7 @@ def initialize_quiz():
                 question=q["question"],
                 answers=items,
                 level=q.get('level', 0),
-                explain=q['explain']
+                explain=q.get('explain', '')
             )
         )
     st.session_state.quiz_data = quiz_data
