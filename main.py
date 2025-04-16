@@ -17,7 +17,8 @@ def show_question():
 
     rate = 0
     if idx > 0:
-        rate = round(len(st.session_state.correct) * 100.0 / idx)
+        total = len(st.session_state.correct) + len(st.session_state.incorrect)
+        rate = round(len(st.session_state.correct) * 100.0 / total)
 
     st.markdown(
         f"""  
@@ -136,6 +137,7 @@ def process_result(q_data: Question, selected: set[str]):
         st.session_state.correct.add(st.session_state.get("current_question_idx", 0))
         st.success("✅ Correct answer!")
     else:
+        st.session_state.incorrect.add(st.session_state.get("current_question_idx", 0))
         message = [i[0] for i in q_data.answers if i[1]]
         message = f'❌  Incorrect answer! (Correct answer: {", ".join(message)})'
         st.error(message.strip())
@@ -154,6 +156,7 @@ def main():
         st.session_state.initialized = True
         st.session_state.current_question_idx = 0
         st.session_state.correct = set()
+        st.session_state.incorrect = set()
         st.session_state.assistant = None
 
     st.set_page_config(page_title="Question bank", layout="centered")
