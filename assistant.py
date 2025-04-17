@@ -1,6 +1,7 @@
 import json
 import os
 from google import genai
+from google.genai import types
 from pydantic import BaseModel
 import copy
 
@@ -17,32 +18,30 @@ client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY"))
 class Assistant:
     def __init__(self, question, prompt=None):
         self.question = question
-        self.messages = [{"role": "system", "content": prompt}]
-        self.chat = client.chats.create(model="gemini-2.0-flash")
+        self.messages = []
+        self.chat = client.chats.create(
+            model="gemini-2.0-flash",
+            config=types.GenerateContentConfig(
+                system_instruction=prompt,
+            )
+        )
 	
     def translate(self):
-        input_json = json.dumps({
-            "question": self.question.question,
-            'answers': [i[0] for i in self.question.answers],
-            'explain': self.question.explain
-        })
-        prompt = f"""
-			Please change the language to Korean. 
-			However, technical or service terms and data values must remain original.
-			Also, don't abbreviate all the detailed information (it may be required for the exam).
-			
-			## input
-			```
-			{input_json}
-			```
-        """
         response = client.models.generate_content(
             model="gemini-2.0-flash",
-            contents=[prompt],
-            config={
-                'response_mime_type': 'application/json',
-                'response_schema': TranslateModel
-            }
+            contents=json.dumps({
+                "question": self.question.question,
+                'answers': [i[0] for i in self.question.answers],
+                'explain': self.question.explain
+            }),
+            config=types.GenerateContentConfig(
+                system_instruction='''Please translate the question and answer into Korean.
+                However, technical or service terms and data values must remain original.
+			    Also, don't abbreviate all the detailed information (it may be required for the exam).
+                ''',
+                response_mime_type='application/json',
+                response_schema=TranslateModel,
+            )
         )
         ai_response = response.parsed
         translate_question = copy.deepcopy(self.question)
@@ -56,7 +55,7 @@ class Assistant:
         self.messages.append({"role": "user", "content": message})
 
     def inference(self):
-        response = self.chat.send_message_stream(self.messages[-1]['content'])
+        response = self.chat.send_message_stream(self.messages[-1]['content'] if self.messages else '')
         line = ''
         for chunk in response:
             line += chunk.text
@@ -65,22 +64,19 @@ class Assistant:
         self.messages.append({"role": "assistant", "content": line})
 
     def get_answer(self) -> set[str]:
-        prompt = f"""
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=f"""
             ## Question
             {self.question.question}
 
             ## Candidate
             {[i[0] for i in self.question.answers]}
-            
-            Please read the question and find the appropriate answer.
-            example: ["A", "C"]
-        """
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=[prompt],
-            config={
-                'response_mime_type': 'application/json',
-                'response_schema': JSONModel
-            }
+            """,
+            config=types.GenerateContentConfig(
+                system_instruction='Please read the question and find the appropriate answer(A, B, ...).',
+                response_mime_type='application/json',
+                response_schema=JSONModel,
+            )
         )
         return set(response.parsed.answer_numbers)
