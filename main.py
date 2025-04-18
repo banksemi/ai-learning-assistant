@@ -88,18 +88,44 @@ def show_question():
 
     ai_click = None
 
+    context = ""
+    for i in range(0, get_total_count()):
+        q = get_quiz(idx)
+        context += f"""
+            문제 번호 {i}
+            {q_data.question}
+        
+            정답 후보
+            {q_data.answers}
+            
+            설명
+            {q_data.explain}
+            ---
+        """
+        
 
     prompt = f"""
+    # 시스템 지침
     사용자가 문제를 잘 학습할 수 있도록 돕는 AI 입니다. 어려운 AWS 용어나 개념을 친철하게 풀어서 설명해주세요.
     또한 헷갈릴 수 있는 포인트 혹은 AWS-DVA 시험을 준비할 때 놓치면 안되는 포인트를 이해하기 쉽도록 정리해서 보여주세요.
     헤더를 사용하지 마세요.
 
-    ## question
+    # 지식 베이스
+    {context}
+    
+    # Question
     {q_data.question}
 
-    ## Correct answer candidate
-    {[i[0] for i in q_data.answers]}
+    # Correct answer candidate list[tuple[str, bool(is_correct_answer)]]
+    {q_data.answers}
+    
+    # Explaination
+    {q_data.explain}
+    
+    # 지시사항
+    사용자의 문장이 불완전하다고 판단해도 적절한 답변을 제공해야합니다.
     """
+    print(prompt)
 
     if st.session_state.get('selected', None):
         process_result(q_data, st.session_state.selected)
