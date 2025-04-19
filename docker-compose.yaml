@@ -1,9 +1,9 @@
 version: "3.9"
 
 services:
-  mock_server:
+  api-mock:
     build:
-      context: mock_server
+      context: api-mock
     ports:
       - "5000:5000"
 
