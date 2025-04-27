@@ -18,7 +18,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     private final QuestionBankRepository questionBankRepository;
 
     @Override
-    public Long createQuestionBank(String title, Language language) {
+    public Long createQuestionBank(String title) {
         if (title == null) {
             throw new IllegalArgumentException("title is null");
         }

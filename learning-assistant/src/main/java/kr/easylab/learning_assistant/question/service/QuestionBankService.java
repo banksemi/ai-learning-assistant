@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface QuestionBankService {
-    Long createQuestionBank(String title, Language language);
+    Long createQuestionBank(String title);
     QuestionBank getQuestionBank(Long questionBankId);
     List<QuestionBank> getQuestionBanks();
 

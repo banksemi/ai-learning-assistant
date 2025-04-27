@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    url: "jdbc:mariadb://${DB_HOST}/${DB_NAME}"
+    username: "${DB_USER}"
+    password: "${DB_PASSWORD}"
+    driver-class-name: org.mariadb.jdbc.Driver
+
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+
+  jpa:
+    database-platform: org.hibernate.dialect.MariaDBDialect
+    hibernate:
+      ddl-auto: update
+    properties:
+      format_sql: true
+
+  profiles:
+    active: dev
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+

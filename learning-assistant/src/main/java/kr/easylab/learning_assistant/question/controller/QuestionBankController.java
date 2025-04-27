@@ -1,10 +1,15 @@
 package kr.easylab.learning_assistant.question.controller;
 
+import jakarta.validation.Valid;
+import kr.easylab.learning_assistant.admin.dto.OkResponse;
 import kr.easylab.learning_assistant.common.dto.ListResponse;
+import kr.easylab.learning_assistant.question.dto.QuestionBankCreationRequest;
+import kr.easylab.learning_assistant.question.dto.QuestionBankCreationResponse;
 import kr.easylab.learning_assistant.question.dto.QuestionBankResponse;
 import kr.easylab.learning_assistant.question.entity.QuestionBank;
 import kr.easylab.learning_assistant.question.service.QuestionBankService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -30,5 +35,12 @@ public class QuestionBankController {
                 .total((long) questionBankResponses.size())
                 .data(questionBankResponses)
                 .build();
+    }
+
+    @PostMapping()
+    @PreAuthorize("hasRole('ADMIN')")
+    public QuestionBankCreationResponse post(@RequestBody @Valid QuestionBankCreationRequest request) {
+        Long id = questionBankService.createQuestionBank(request.getTitle());
+        return new QuestionBankCreationResponse(id);
     }
 }
