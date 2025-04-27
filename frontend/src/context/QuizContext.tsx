@@ -1,0 +1,455 @@
+import React, { createContext, useState, useContext, ReactNode, useMemo, useEffect, useCallback } from 'react';
+import {
+    Question, // Frontend Question type
+    QuizSettings,
+    UserAnswer, // Keep for potential local tracking if needed, but API is primary
+    QuizResult, // Frontend Result type
+    Language,
+    ApiQuestionResponse, // API response type for a question
+    ApiAnswerResponse, // API response type for submitting an answer
+    ChatMessage, // Frontend Chat message type
+    ApiChatResponse, // API response for chat
+    ApiResultResponse, // API response for results
+    QuestionOption, // Frontend Option type
+    ApiQuestionOption, // API Option type
+    ApiResultQuestionDetail // API Result question detail type
+} from '@/types';
+import { useNavigate } from 'react-router-dom';
+import { toast } from "sonner"; // Using sonner for notifications
+import * as api from '@/services/api'; // Import API service functions
+
+// Helper function to map API question response to frontend Question type
+const mapApiQuestionToFrontend = (apiQuestion: ApiQuestionResponse, lang: Language): Question => {
+    // The API response doesn't include language-specific text directly in title/explanation
+    // Assuming the API returns text based on the language set during exam creation.
+    // If API provided ko/en fields, mapping would be needed here.
+    return {
+        id: apiQuestion.question_id,
+        text: apiQuestion.title, // Assuming API returns correct language
+        options: apiQuestion.options.map((opt: ApiQuestionOption): QuestionOption => ({
+            id: opt.key,
+            text: opt.value, // Assuming API returns correct language
+        })),
+        correctAnswerIds: [], // Correct answers are fetched *after* submission via API
+        explanation: '', // Explanation is fetched *after* submission via API
+        type: apiQuestion.answer_count > 1 ? 'multiple' : 'single',
+        isMarked: apiQuestion.marker,
+        // We might not need userSelectedIds if results API provides it
+    };
+};
+
+// Helper function to map API result question detail to frontend Question type
+const mapApiResultQuestionToFrontend = (apiDetail: ApiResultQuestionDetail): Question => {
+     // Determine type based on actual_answers length
+     const type = apiDetail.actual_answers.length > 1 ? 'multiple' : 'single';
+     return {
+         id: apiDetail.question_id,
+         text: apiDetail.title,
+         options: apiDetail.options.map((opt: ApiQuestionOption): QuestionOption => ({
+             id: opt.key,
+             text: opt.value,
+         })),
+         correctAnswerIds: apiDetail.actual_answers,
+         explanation: apiDetail.explanation,
+         type: type,
+         isMarked: false, // Marked status is handled separately in the result structure
+         userSelectedIds: apiDetail.user_answers, // Store user's selection from result
+     };
+ };
+
+
+interface QuizContextProps {
+  settings: QuizSettings | null;
+  // setSettings: (settings: QuizSettings) => void; // Might not be needed directly if startQuiz handles it
+  examId: number | null; // Added examId state
+  currentQuestion: Question | null; // Store the currently fetched question
+  questions: Question[]; // Keep original questions list for results page (original index)
+  currentQuestionIndex: number;
+  totalQuestions: number; // Total questions for the current exam
+  setCurrentQuestionIndex: (index: number) => void;
+  userAnswers: UserAnswer[]; // Keep track of answers locally for immediate feedback/review state
+  submitAnswer: (questionId: number, selectedOptionIds: string[]) => Promise<ApiAnswerResponse | null>; // Now async, returns API response
+  result: QuizResult | null;
+  startQuiz: (settings: QuizSettings) => Promise<void>; // Now async
+  resetQuiz: () => void;
+  // getCurrentQuestion: () => Question | null; // Replaced by currentQuestion state + fetch logic
+  isQuizFinished: boolean;
+  language: Language;
+  setLanguage: (lang: Language) => void;
+  finishQuiz: () => Promise<void>; // Now async, doesn't need finalAnswers param
+  // Marker related state and functions
+  // markedQuestionIds: string[]; // Replaced by isMarked in Question type, driven by API
+  toggleMarkQuestion: (questionId: number) => Promise<void>; // Now async
+  isQuestionMarked: (questionId: number) => boolean; // Checks currentQuestion.isMarked
+  // Loading and Error states
+  isLoading: boolean;
+  error: string | null;
+  clearError: () => void; // Ensure clearError is in the interface
+  // AI Chat
+  sendChatMessage: (questionId: number, message: string) => Promise<ApiChatResponse | null>; // Added for AI chat
+}
+
+const QuizContext = createContext<QuizContextProps | undefined>(undefined);
+
+export const QuizProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [settings, setSettingsState] = useState<QuizSettings | null>(null);
+  const [examId, setExamId] = useState<number | null>(null);
+  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]); // Keep state for original questions
+  const [currentQuestionIndex, setCurrentQuestionIndexState] = useState<number>(0);
+  const [totalQuestions, setTotalQuestions] = useState<number>(0);
+  const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]); // Store answers with correctness status after API call
+  const [result, setResult] = useState<QuizResult | null>(null);
+  const [isQuizFinished, setIsQuizFinished] = useState<boolean>(false);
+  const [language, setLanguageState] = useState<Language>('ko');
+  // Loading and error states
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const navigate = useNavigate();
+
+  // Define clearError function
+  const clearError = useCallback(() => setError(null), []);
+
+  // --- Fetch Current Question Logic ---
+  const fetchQuestion = useCallback(async (examIdToFetch: number, index: number, lang: Language) => {
+    if (examIdToFetch === null) return;
+    setIsLoading(true);
+    setError(null); // Use setError directly or call clearError()
+    try {
+      // API uses 0-based index for fetching questions
+      const apiQuestion = await api.getQuestion(examIdToFetch, index);
+      const frontendQuestion = mapApiQuestionToFrontend(apiQuestion, lang);
+      setCurrentQuestion(frontendQuestion);
+      // Store fetched question in the main questions list if needed for results page
+      // This assumes questions are fetched sequentially and index matches array index
+      setQuestions(prev => {
+          const newQuestions = [...prev];
+          // Ensure the array is large enough
+          if (index >= newQuestions.length) {
+              // Fill gaps with null or handle appropriately if non-sequential fetch is possible
+              newQuestions.length = index + 1;
+          }
+          newQuestions[index] = frontendQuestion;
+          return newQuestions;
+      });
+
+    } catch (err: any) {
+      console.error("Error fetching question:", err);
+      setError(err.message || `Failed to load question ${index + 1}`);
+      setCurrentQuestion(null); // Clear question on error
+      // Potentially navigate back or show error message prominently
+    } finally {
+      setIsLoading(false);
+    }
+  }, []); // Removed setError from dependencies as it's stable
+
+  // Effect to fetch question when index or examId changes
+  useEffect(() => {
+    if (examId !== null && !isQuizFinished && totalQuestions > 0 && currentQuestionIndex < totalQuestions) {
+        // Fetch if the question at the current index hasn't been fetched yet
+        if (!questions[currentQuestionIndex]) {
+             fetchQuestion(examId, currentQuestionIndex, language);
+        } else {
+            // If already fetched, just set it as the current question
+            setCurrentQuestion(questions[currentQuestionIndex]);
+        }
+    }
+  }, [examId, currentQuestionIndex, isQuizFinished, fetchQuestion, language, totalQuestions, questions]); // Added questions to dependencies
+
+  // Define finishQuiz *before* setCurrentQuestionIndex
+  const finishQuiz = useCallback(async () => {
+    if (examId === null || !settings) {
+      setError("Cannot finish quiz: Exam ID or settings missing.");
+      return;
+    }
+    setIsLoading(true);
+    clearError(); // Use clearError here
+    navigate('/calculating-results'); // Navigate immediately
+
+    try {
+      const apiResult: ApiResultResponse = await api.getResults(examId);
+
+      const score = apiResult.total_questions > 0
+        ? Math.round((apiResult.correct_questions / apiResult.total_questions) * 100)
+        : 0;
+
+      // Map API result questions to frontend Question type
+      // These already contain explanation, user_answers, actual_answers
+      const markedQuestions = apiResult.questions.marked.map(mapApiResultQuestionToFrontend);
+      const incorrectQuestions = apiResult.questions.incorrect.map(mapApiResultQuestionToFrontend);
+
+      const finalResult: QuizResult = {
+        settings: settings,
+        score,
+        summary: apiResult.summary,
+        markedQuestions: markedQuestions,
+        incorrectQuestions: incorrectQuestions,
+        // Add totalQuestions and correctCount from API response
+        totalQuestions: apiResult.total_questions,
+        correctCount: apiResult.correct_questions,
+      };
+
+      setResult(finalResult);
+      setIsQuizFinished(true);
+      // DO NOT clear questions state here, needed for results page original index lookup
+      // setQuestions([]);
+      // setCurrentQuestion(null);
+
+    } catch (err: any) {
+      console.error("Error finishing quiz:", err);
+      setError(err.message || 'Failed to load results.');
+      navigate('/quiz'); // Navigate back to quiz on error? Or show error page?
+    } finally {
+      setIsLoading(false);
+    }
+  }, [examId, settings, navigate, clearError]); // Added dependencies
+
+
+  const setCurrentQuestionIndex = useCallback((index: number) => {
+    if (index >= 0 && index < totalQuestions) {
+        setCurrentQuestionIndexState(index);
+        // Fetching is handled by the useEffect hook now
+    } else if (index >= totalQuestions) {
+        // Attempting to go beyond the last question, trigger finishQuiz
+        finishQuiz(); // Now finishQuiz is guaranteed to be initialized
+    }
+  }, [totalQuestions, finishQuiz]); // Keep finishQuiz dependency
+
+
+  const setLanguage = useCallback((lang: Language) => {
+    setLanguageState(lang);
+    // Note: Changing language mid-quiz might require refetching the current question
+    // if the API doesn't handle it automatically based on exam settings.
+    // For simplicity, we assume the API uses the language set during exam creation.
+    if (settings) {
+      setSettingsState({ ...settings, language: lang });
+    }
+  }, [settings]); // Added settings dependency
+
+  const startQuiz = useCallback(async (newSettings: QuizSettings) => {
+    setIsLoading(true);
+    clearError(); // Use clearError here
+    try {
+      const examData = await api.createExam({
+        question_bank_id: newSettings.questionBankId,
+        language: newSettings.language,
+        questions: newSettings.numberOfQuestions,
+      });
+      const newExamId = examData.exam_id;
+
+      // Fetch total questions for the created exam
+      const totalData = await api.getTotalQuestions(newExamId);
+      const fetchedTotalQuestions = totalData.total_questions;
+
+      // Basic validation
+      if (fetchedTotalQuestions <= 0) {
+          throw new Error("No questions found for this exam configuration.");
+      }
+       // Ensure requested number doesn't exceed available
+       if (newSettings.numberOfQuestions > fetchedTotalQuestions) {
+           console.warn(`Requested ${newSettings.numberOfQuestions} questions, but only ${fetchedTotalQuestions} available in the bank. Starting with ${fetchedTotalQuestions}.`);
+           newSettings.numberOfQuestions = fetchedTotalQuestions; // Adjust settings
+       }
+
+
+      setSettingsState(newSettings);
+      setExamId(newExamId);
+      setTotalQuestions(newSettings.numberOfQuestions); // Use the adjusted number
+      setCurrentQuestionIndexState(0); // Reset index to 0
+      setUserAnswers([]);
+      setResult(null);
+      setIsQuizFinished(false);
+      setLanguageState(newSettings.language);
+      setCurrentQuestion(null); // Clear previous question before fetching new one
+      setQuestions([]); // Clear previous full questions list
+
+      // Initial fetch for the first question (index 0) is handled by useEffect
+
+      navigate('/quiz');
+    } catch (err: any) {
+      console.error("Error starting quiz:", err);
+      setError(err.message || 'Failed to start quiz. Please try again.');
+      // Reset state partially on error
+      setExamId(null);
+      setTotalQuestions(0);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [navigate, clearError]); // Added clearError dependency
+
+  const submitAnswer = useCallback(async (questionId: number, selectedOptionIds: string[]): Promise<ApiAnswerResponse | null> => {
+    if (examId === null) {
+        setError("Exam ID is missing.");
+        return null;
+    }
+    setIsLoading(true);
+    clearError(); // Use clearError here
+    try {
+      const response = await api.submitAnswer(examId, questionId, { user_answers: selectedOptionIds });
+
+      // Determine correctness based on API response
+      const correctIds = response.actual_answers.sort();
+      const selectedIdsSorted = [...selectedOptionIds].sort();
+      const isCorrect = JSON.stringify(correctIds) === JSON.stringify(selectedIdsSorted);
+
+      const newUserAnswer: UserAnswer = { questionId, selectedOptionIds, isCorrect };
+
+      // Update userAnswers state
+      setUserAnswers(prevAnswers => {
+        const existingAnswerIndex = prevAnswers.findIndex(a => a.questionId === questionId);
+        if (existingAnswerIndex > -1) {
+          const updatedAnswers = [...prevAnswers];
+          updatedAnswers[existingAnswerIndex] = newUserAnswer;
+          return updatedAnswers;
+        } else {
+          return [...prevAnswers, newUserAnswer];
+        }
+      });
+
+       // Update current question with explanation and correct answers for immediate feedback
+       setCurrentQuestion(prev => prev ? ({
+           ...prev,
+           correctAnswerIds: response.actual_answers,
+           explanation: response.explanation,
+           userSelectedIds: selectedOptionIds // Store user selection for review
+       }) : null);
+
+       // Update the main questions list as well, so results page has explanation/correct answers
+       setQuestions(prevQs => prevQs.map(q => q.id === questionId ? {
+           ...q,
+           correctAnswerIds: response.actual_answers,
+           explanation: response.explanation,
+           userSelectedIds: selectedOptionIds
+       } : q));
+
+
+      setIsLoading(false); // Set loading false *before* returning
+      return response; // Return the full API response for potential use in the component
+
+    } catch (err: any) {
+      console.error("Error submitting answer:", err);
+      setError(err.message || 'Failed to submit answer.');
+      setIsLoading(false); // Ensure loading is false on error
+      return null;
+    }
+  }, [examId, clearError]); // Added clearError dependency
+
+  const toggleMarkQuestion = useCallback(async (questionId: number) => {
+    if (examId === null || !currentQuestion) {
+        setError("Cannot mark question: Exam ID or question missing.");
+        return;
+    }
+    const newMarkState = !currentQuestion.isMarked;
+    // Optimistically update UI first
+    setCurrentQuestion(prev => prev ? { ...prev, isMarked: newMarkState } : null);
+     // Update the main questions list as well
+     setQuestions(prevQs => prevQs.map(q => q.id === questionId ? { ...q, isMarked: newMarkState } : q));
+
+    try {
+      await api.toggleMarker(examId, questionId, newMarkState);
+      // API call successful, UI already updated
+       toast(newMarkState ? "북마크 추가됨" : "북마크 제거됨", { // Use Sonner toast
+           description: newMarkState ? "나중에 다시 볼 수 있도록 문제를 표시했습니다." : "문제를 검토 목록에서 제거했습니다.",
+           duration: 2000,
+       });
+    } catch (err: any) {
+      console.error("Error toggling marker:", err);
+      setError(err.message || 'Failed to update bookmark.');
+      // Revert optimistic update on error
+      setCurrentQuestion(prev => prev ? { ...prev, isMarked: !newMarkState } : null);
+      setQuestions(prevQs => prevQs.map(q => q.id === questionId ? { ...q, isMarked: !newMarkState } : q));
+       toast.error("북마크 업데이트 실패"); // Use Sonner error toast
+    }
+  }, [examId, currentQuestion]); // Added currentQuestion dependency
+
+  const isQuestionMarked = useCallback((questionId: number): boolean => {
+    // Check the isMarked property of the currentQuestion state
+    return currentQuestion?.id === questionId && currentQuestion.isMarked;
+  }, [currentQuestion]); // Added currentQuestion dependency
+
+
+  const resetQuiz = useCallback(() => {
+    setSettingsState(null);
+    setExamId(null);
+    setCurrentQuestion(null);
+    setQuestions([]); // Clear questions list on reset
+    setCurrentQuestionIndexState(0);
+    setTotalQuestions(0);
+    setUserAnswers([]);
+    setResult(null);
+    setIsQuizFinished(false);
+    setLanguageState('ko');
+    setIsLoading(false);
+    setError(null); // Use setError directly or call clearError()
+    navigate('/');
+  }, [navigate]); // Added navigate dependency
+
+   // --- AI Chat Function ---
+   const sendChatMessage = useCallback(async (questionId: number, message: string): Promise<ApiChatResponse | null> => {
+       if (examId === null) {
+           setError("Cannot send chat message: Exam ID missing.");
+           return null;
+       }
+       // No loading state change here, handled in component maybe? Or add specific chat loading state?
+       clearError(); // Use clearError here
+       try {
+           const response = await api.postChatMessage(examId, questionId, { user: message });
+           return response;
+       } catch (err: any) {
+           console.error("Error sending chat message:", err);
+           // Display error via toast in the component?
+           toast.error(err.message || 'Failed to send message to AI.');
+           return null;
+       }
+   }, [examId, clearError]); // Added clearError dependency
+
+
+  // Ensure all functions and state values provided by the context are stable
+  // by wrapping function definitions in useCallback and including them in useMemo dependencies.
+  const contextValue = useMemo(() => ({
+    settings,
+    examId,
+    currentQuestion,
+    questions, // Provide original questions list
+    currentQuestionIndex,
+    totalQuestions,
+    setCurrentQuestionIndex, // Use the memoized version
+    userAnswers,
+    submitAnswer, // Use the memoized version
+    result,
+    startQuiz, // Use the memoized version
+    resetQuiz, // Use the memoized version
+    isQuizFinished,
+    language,
+    setLanguage, // Use the memoized version
+    finishQuiz, // Use the memoized version
+    toggleMarkQuestion, // Use the memoized version
+    isQuestionMarked, // Use the memoized version
+    isLoading,
+    error,
+    clearError, // Use the memoized version
+    sendChatMessage, // Use the memoized version
+  }), [
+      settings, examId, currentQuestion, questions, currentQuestionIndex, totalQuestions, userAnswers, result,
+      isQuizFinished, language, isLoading, error,
+      // Add all memoized functions as dependencies for useMemo
+      setCurrentQuestionIndex, submitAnswer, startQuiz, resetQuiz, setLanguage,
+      finishQuiz, toggleMarkQuestion, isQuestionMarked, clearError, sendChatMessage
+  ]);
+
+
+  return (
+    <QuizContext.Provider value={contextValue}>
+      {children}
+    </QuizContext.Provider>
+  );
+};
+
+export const useQuiz = (): QuizContextProps => {
+  const context = useContext(QuizContext);
+  if (context === undefined) {
+    throw new Error('useQuiz must be used within a QuizProvider');
+  }
+  return context;
+};

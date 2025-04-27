@@ -1,44 +1,268 @@
+@import "@fontsource/geist-sans";
+
 @tailwind base;
-        @tailwind components;
-        @tailwind utilities;
+@tailwind components;
+@tailwind utilities;
 
-        body {
-          @apply bg-background font-sans;
-        }
+@layer base {
+  :root {
+    /* Changed background hue to 220, increased saturation slightly */
+    --background: 220 15% 97%; /* Slightly blue-tinted light gray */
+    --foreground: 222.2 84% 4.9%;
 
-        /* Custom scrollbar for markdown content if needed (REMOVED as per previous request) */
-        /* .markdown-content::-webkit-scrollbar { ... } */
+    --card: 0 0% 100%; /* White card */
+    --card-foreground: 222.2 84% 4.9%;
 
-        /* Basic markdown styling */
-        .markdown-content h1, .markdown-content h2, .markdown-content h3 { @apply mt-4 mb-2 font-semibold; }
-        .markdown-content h1 { @apply text-2xl; }
-        .markdown-content h2 { @apply text-xl; }
-        .markdown-content h3 { @apply text-lg; }
-        .markdown-content p { @apply mb-4 leading-relaxed; } /* Keep default paragraph margin */
-        .markdown-content ul, .markdown-content ol { @apply mb-4 ml-6 list-disc; }
-        .markdown-content ol { @apply list-decimal; }
-        .markdown-content li { @apply mb-1; }
-        /* Inline code styling is now handled within the component's CodeBlock definition */
-        /* .markdown-content code { @apply bg-gray-200 text-sm px-1 py-0.5 rounded font-mono; } */
-        /* Remove default pre styling as SyntaxHighlighter handles it */
-        /* .markdown-content pre { @apply bg-gray-800 text-white p-4 rounded-md overflow-x-auto mb-4; } */
-        /* .markdown-content pre code { @apply bg-transparent p-0; } */
-        .markdown-content blockquote { @apply border-l-4 border-gray-300 pl-4 italic text-gray-600 my-4; }
-        .markdown-content a { @apply text-primary hover:underline; }
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
 
-        /* Ensure SyntaxHighlighter's pre tag takes full width and handles overflow */
-        .markdown-content pre {
-            @apply p-4 rounded-md overflow-x-auto mb-4; /* Add back padding/margin/overflow */
-            /* Background color is handled by the theme (atomDark) */
-        }
+    /* Primary: Reverted to Blue shade */
+    --primary: 221.2 83.2% 53.3%; /* Blue */
+    --primary-foreground: 210 40% 98%; /* White */
 
-        /* --- New Rule --- */
-        /* Remove bottom margin specifically from the LAST paragraph inside .markdown-content */
-        /* This helps with single-line options/answers rendered as <p> */
-        .markdown-content > p:last-child {
-            @apply mb-0;
-        }
-        /* Optional: Remove top margin from the first element if needed */
-        /* .markdown-content > *:first-child {
-            @apply mt-0;
-        } */
+    /* Secondary: Keep as a neutral gray */
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 72% 51%; /* Slightly adjusted red */
+    --destructive-foreground: 0 0% 100%;
+
+    /* Success color for correct answers */
+    --success: 145 63% 49%;
+    --success-foreground: 0 0% 100%;
+
+    /* Error color for incorrect answers (can reuse destructive or define separately) */
+    --error: 0 72% 51%;
+    --error-foreground: 0 0% 100%;
+
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%; /* Reverted ring to match primary blue */
+
+    --radius: 0.5rem; /* Keep existing radius */
+
+    /* Sidebar colors remain unchanged unless specified */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Changed background hue to 220 */
+    --background: 220 12% 12%; /* Slightly blue-tinted dark gray */
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 15% 18%; /* Dark card */
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 15% 18%;
+    --popover-foreground: 210 40% 98%;
+
+    /* Primary: Lighter Blue for dark mode */
+    --primary: 217.2 91.2% 59.8%; /* Lighter Blue */
+    --primary-foreground: 222.2 47.4% 11.2%; /* Dark Blue/Black */
+
+    /* Secondary: Darker Gray */
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 50%; /* Adjusted red for dark */
+    --destructive-foreground: 0 0% 100%;
+
+    /* Success color for dark mode */
+    --success: 145 55% 59%;
+    --success-foreground: 222.2 47.4% 11.2%;
+
+    /* Error color for dark mode */
+    --error: 0 63% 50%;
+    --error-foreground: 0 0% 100%;
+
+    --border: 217.2 20% 25.5%; /* Adjusted border */
+    --input: 217.2 32.6% 17.5%;
+    --ring: 217.2 91.2% 59.8%; /* Reverted ring to match primary blue */
+
+    /* Sidebar colors remain unchanged unless specified */
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    /* Use the updated background variable */
+    @apply bg-background text-foreground min-h-screen;
+    font-family: 'Geist Sans', sans-serif;
+  }
+
+  /* Add styles for react-markdown */
+  .prose {
+    @apply text-foreground max-w-none;
+  }
+  .prose code::before, .prose code::after {
+    content: none;
+  }
+  .prose code {
+    @apply font-normal bg-muted text-foreground px-1 py-0.5 rounded-sm text-sm; /* Ensure code font size is consistent */
+  }
+  .prose pre {
+    /* Changed padding from p-2 to p-0, kept border */
+    @apply bg-gray-100 dark:bg-gray-800 p-0 rounded-md overflow-x-auto text-sm border border-[hsl(var(--border))];
+  }
+  .prose pre code {
+    /* Padding is now handled by the syntax highlighter's customStyle */
+    @apply bg-transparent font-normal;
+  }
+  .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+      @apply text-foreground;
+  }
+  .prose a {
+      @apply text-primary hover:text-primary/80;
+  }
+  .prose blockquote {
+      @apply border-l-primary text-muted-foreground;
+  }
+  .prose ul > li::marker {
+      @apply text-foreground;
+  }
+  .prose ol > li::marker {
+      @apply text-foreground;
+  }
+  .prose strong {
+      @apply text-foreground;
+  }
+  .prose hr {
+      @apply border-border;
+  }
+  /* Ensure consistent font size within prose */
+  .prose p, .prose li, .prose blockquote {
+      @apply text-base; /* Or text-sm if preferred */
+  }
+}
+
+@layer components {
+  /* Custom animation for score */
+  @keyframes count-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-count-up {
+    animation: count-up 0.5s ease-out forwards;
+  }
+
+  /* General fade-in animation */
+   .animate-fade-in {
+     animation: fade-in 0.5s ease-out forwards;
+   }
+
+   @keyframes fade-in {
+     from { opacity: 0; }
+     to { opacity: 1; }
+   }
+
+   /* Custom styles for quiz options */
+   .quiz-option {
+     @apply flex items-start space-x-3 p-4 border rounded-lg transition-colors duration-200 cursor-pointer;
+   }
+   .quiz-option-label {
+      @apply font-normal flex-1 text-left cursor-pointer pt-0.5; /* Adjust alignment slightly */
+   }
+   .quiz-option-default {
+      @apply border-input bg-card hover:bg-accent/50 dark:hover:bg-accent/20;
+   }
+   .quiz-option-selected {
+      /* Style for when selected but not yet submitted, optional */
+      @apply border-primary ring-1 ring-primary bg-primary/5;
+   }
+   .quiz-option-correct {
+      /* FIX: Removed bg-* and dark:bg-* from apply */
+      @apply border-[hsl(var(--success))] text-green-800 dark:text-green-200;
+      background-color: theme('colors.green.50');
+   }
+   .dark .quiz-option-correct {
+       /* FIX: Apply dark mode background color directly */
+       background-color: hsla(var(--success) / 0.1);
+   }
+
+   .quiz-option-incorrect-selected {
+       /* FIX: Removed bg-* and dark:bg-* from apply */
+       @apply border-[hsl(var(--error))] text-red-800 dark:text-red-200;
+       background-color: theme('colors.red.50');
+   }
+   .dark .quiz-option-incorrect-selected {
+       /* FIX: Apply dark mode background color directly */
+       background-color: hsla(var(--error) / 0.1);
+   }
+
+   .quiz-option-disabled {
+       @apply opacity-70 cursor-default hover:bg-card dark:hover:bg-card;
+   }
+
+   /* Custom styles for feedback alert */
+   .feedback-alert {
+       @apply p-4 rounded-lg border;
+   }
+   .feedback-alert-correct {
+       /* FIX: Removed bg-* and dark:bg-* from apply */
+       @apply border-[hsl(var(--success))] text-green-800 dark:text-green-200;
+       background-color: theme('colors.green.50');
+   }
+   .dark .feedback-alert-correct {
+       /* FIX: Apply dark mode background color directly */
+       background-color: hsla(var(--success) / 0.1);
+   }
+
+   .feedback-alert-incorrect {
+       /* FIX: Removed bg-* and dark:bg-* from apply */
+       @apply border-[hsl(var(--error))] text-red-800 dark:text-red-200;
+       background-color: theme('colors.red.50');
+   }
+    .dark .feedback-alert-incorrect {
+       /* FIX: Apply dark mode background color directly */
+       background-color: hsla(var(--error) / 0.1);
+   }
+
+   .feedback-alert-title {
+       @apply font-semibold flex items-center gap-2 mb-1;
+   }
+   .feedback-alert-description {
+       @apply prose prose-sm dark:prose-invert max-w-none;
+   }
+
+}
+
+/* Add plugin for typography */
+@plugin "@tailwindcss/typography";
