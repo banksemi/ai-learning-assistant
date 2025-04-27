@@ -16,6 +16,4 @@ public class QuestionBank {
 
     @Column(nullable = false)
     private String title;
-
-    private Language language;
 }

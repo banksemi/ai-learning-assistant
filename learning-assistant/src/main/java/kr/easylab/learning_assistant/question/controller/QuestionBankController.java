@@ -1,17 +1,34 @@
 package kr.easylab.learning_assistant.question.controller;
 
-import kr.easylab.learning_assistant.question.dto.ListResponse;
+import kr.easylab.learning_assistant.common.dto.ListResponse;
 import kr.easylab.learning_assistant.question.dto.QuestionBankResponse;
+import kr.easylab.learning_assistant.question.entity.QuestionBank;
+import kr.easylab.learning_assistant.question.service.QuestionBankService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/1/question-banks")
 @RequiredArgsConstructor
 public class QuestionBankController {
+    private final QuestionBankService questionBankService;
 
     @GetMapping()
     public ListResponse<QuestionBankResponse> get() {
-        return new ListResponse<QuestionBankResponse>();
+        List<QuestionBankResponse> questionBankResponses = new ArrayList<>();
+        for (QuestionBank bank: questionBankService.getQuestionBanks()) {
+            questionBankResponses.add(QuestionBankResponse.builder()
+                            .questionBankId(bank.getId())
+                            .questions(0L)
+                            .title(bank.getTitle())
+                    .build());
+        }
+        return ListResponse.<QuestionBankResponse>builder()
+                .total((long) questionBankResponses.size())
+                .data(questionBankResponses)
+                .build();
     }
 }

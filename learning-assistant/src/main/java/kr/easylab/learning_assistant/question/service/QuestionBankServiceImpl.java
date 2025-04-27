@@ -24,7 +24,6 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         }
         QuestionBank questionBank = QuestionBank.builder()
                 .title(title)
-                .language(language)
                 .build();
         questionBankRepository.save(questionBank);
         return questionBank.getId();
