@@ -31,6 +31,12 @@ public class QuestionBankRepository {
         ).collect(Collectors.toList());
     }
 
+    public List<Question> findAllQuestions(Long questionBankId) {
+        return em.createQuery("SELECT q FROM Question q WHERE q.questionBank.id = :questionBankId", Question.class)
+                .setParameter("questionBankId", questionBankId)
+                .getResultList();
+    }
+
     public void save(QuestionBank question){
         em.persist(question);
     }

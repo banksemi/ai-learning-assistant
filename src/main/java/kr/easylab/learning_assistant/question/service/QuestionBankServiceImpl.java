@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -35,7 +36,11 @@ public class QuestionBankServiceImpl implements QuestionBankService {
 
     @Override
     public QuestionBank getQuestionBank(Long questionBankId) {
-        return questionBankRepository.findOne(questionBankId);
+        QuestionBank questionBank = questionBankRepository.findOne(questionBankId);
+        if (questionBank == null) {
+            throw new NotFoundQuestionBank();
+        }
+        return questionBank;
     }
 
     @Override
@@ -77,7 +82,14 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     }
 
     @Override
-    public List<Question> getRandomQuestions(Long questionBankId) {
+    public List<Question> getRandomQuestions(Long questionBankId, Long count) {
+        List<Question> questions = questionBankRepository.findAllQuestions(questionBankId);
+        if (!questions.isEmpty()) {
+            Collections.shuffle(questions);
+            return questions.stream()
+                    .limit(count)
+                    .toList();
+        }
         return List.of();
     }
 
