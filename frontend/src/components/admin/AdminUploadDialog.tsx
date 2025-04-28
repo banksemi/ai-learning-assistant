@@ -20,34 +20,42 @@ import { toast } from "sonner";
 import * as api from '@/services/api';
 import { QuestionBank as FrontendQuestionBank } from '@/types'; // Use Frontend type
 
-// Interface for the JSON structure provided by the user
+// Interface for the JSON structure provided by the user (remains the same)
 interface UserInputQuestion {
     question: string;
     answers: [string, boolean][]; // Array of [answer_text, is_correct]
-    explain: string;
+    explain: string; // Keep explain here for parsing, but it won't be sent to the API
 }
 
-// Interface for the structure needed by the API
-interface ApiUploadOption {
-    correct: boolean;
-    value: string;
-}
+// Interface for the structure needed by the NEW API
 interface ApiUploadQuestion {
-    text: string;
-    options: ApiUploadOption[];
-    explanation?: string; // Include explanation if API supports it
+    title: string;
+    correct_answers: string[];
+    incorrect_answers: string[];
+    // explanation is removed
 }
 
-// Helper to transform user input JSON to API format
+// Helper to transform user input JSON to the NEW API format
 const transformQuestionData = (userInput: UserInputQuestion[]): ApiUploadQuestion[] => {
-    return userInput.map(item => ({
-        text: item.question,
-        options: item.answers.map(([value, correct]) => ({
-            value: value,
-            correct: correct,
-        })),
-        explanation: item.explain, // Pass explanation along
-    }));
+    return userInput.map(item => {
+        const correctAnswers: string[] = [];
+        const incorrectAnswers: string[] = [];
+
+        item.answers.forEach(([value, isCorrect]) => {
+            if (isCorrect) {
+                correctAnswers.push(value);
+            } else {
+                incorrectAnswers.push(value);
+            }
+        });
+
+        return {
+            title: item.question,
+            correct_answers: correctAnswers,
+            incorrect_answers: incorrectAnswers,
+            // explanation is no longer included
+        };
+    });
 };
 
 
@@ -236,13 +244,26 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
       if (!Array.isArray(parsedData)) {
         throw new Error("JSON 데이터는 배열 형태여야 합니다.");
       }
+      // Add validation for the structure of each question object in the array
+      parsedData.forEach((item, index) => {
+          if (typeof item.question !== 'string' || !Array.isArray(item.answers) || typeof item.explain !== 'string') {
+              throw new Error(`JSON 배열의 ${index + 1}번째 항목 형식이 잘못되었습니다. 'question'(string), 'answers'(array), 'explain'(string) 필드가 필요합니다.`);
+          }
+          item.answers.forEach((answer, ansIndex) => {
+              if (!Array.isArray(answer) || answer.length !== 2 || typeof answer[0] !== 'string' || typeof answer[1] !== 'boolean') {
+                  throw new Error(`JSON 배열의 ${index + 1}번째 항목의 ${ansIndex + 1}번째 'answers' 형식이 잘못되었습니다. [string, boolean] 형태여야 합니다.`);
+              }
+          });
+      });
+
     } catch (err: any) {
       console.error("Invalid JSON data:", err);
       setError(`잘못된 JSON 형식: ${err.message}`);
-      toast.error("JSON 파싱 오류", { description: `잘못된 JSON 형식: ${err.message}` });
+      toast.error("JSON 파싱 또는 유효성 검사 오류", { description: `잘못된 JSON 형식: ${err.message}` });
       return;
     }
 
+    // Use the updated transform function
     const questionsToUpload = transformQuestionData(parsedData);
     if (questionsToUpload.length === 0) {
         toast.warning("업로드할 질문이 없습니다.");
@@ -260,7 +281,7 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
 
     for (let i = 0; i < questionsToUpload.length; i++) {
       try {
-        // Pass the validated password
+        // Pass the validated password and the transformed data
         await api.uploadSingleQuestionAdmin(Number(selectedBankId), questionsToUpload[i], validatedPassword);
         successCount++;
       } catch (err: any) {
@@ -287,8 +308,8 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
     if (!authFailed) {
         if (errorCount === 0) {
             toast.success(`총 ${successCount}개의 질문 업로드 완료!`);
-            setJsonData('');
-            fetchBanks();
+            setJsonData(''); // Clear JSON input on full success
+            fetchBanks(); // Refresh bank list (updates question counts)
         } else {
             toast.error(`${errorCount}개 질문 업로드 실패`, {
                 description: `총 ${totalToUpload}개 중 ${successCount}개 성공, ${errorCount}개 실패했습니다. 콘솔 로그를 확인하세요.`,
@@ -409,7 +430,8 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
                         <Label htmlFor="json-data">2. 질문 데이터 (JSON)</Label>
                         <Textarea
                         id="json-data"
-                        placeholder='[{"question": "...", "answers": [["...", true], ["...", false]], "explain": "..."}, ...]'
+                        // Updated placeholder to reflect the expected user input format
+                        placeholder='[{"question": "질문 내용...", "answers": [["정답 텍스트", true], ["오답 텍스트", false]], "explain": "해설 내용..."}, ...]'
                         value={jsonData}
                         onChange={(e) => setJsonData(e.target.value)}
                         rows={10}
@@ -417,7 +439,7 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
                         disabled={isLoading}
                         />
                         <p className="text-xs text-muted-foreground">
-                        위 형식에 맞는 JSON 배열을 입력하세요.
+                        위 형식에 맞는 JSON 배열을 입력하세요. 'answers'는 [답변 텍스트, 정답 여부(boolean)] 쌍의 배열입니다. 'explain' 필드는 API로 전송되지 않습니다.
                         </p>
                     </div>
 

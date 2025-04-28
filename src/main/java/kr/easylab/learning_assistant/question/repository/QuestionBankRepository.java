@@ -25,4 +25,8 @@ public class QuestionBankRepository {
         em.persist(question);
     }
 
+    public void save(Question question) {
+        em.persist(question);
+    }
+
 }

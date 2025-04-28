@@ -13,7 +13,7 @@ public interface QuestionBankService {
     QuestionBank getQuestionBank(Long questionBankId);
     List<QuestionBank> getQuestionBanks();
 
-    Long createQuestion(QuestionCreationRequest request);
+    Long createQuestion(Long questionBankId, QuestionCreationRequest request);
     List<Question> getRandomQuestions(
             Long questionBankId
     );

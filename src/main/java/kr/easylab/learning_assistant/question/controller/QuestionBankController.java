@@ -6,6 +6,7 @@ import kr.easylab.learning_assistant.common.dto.ListResponse;
 import kr.easylab.learning_assistant.question.dto.QuestionBankCreationRequest;
 import kr.easylab.learning_assistant.question.dto.QuestionBankCreationResponse;
 import kr.easylab.learning_assistant.question.dto.QuestionBankResponse;
+import kr.easylab.learning_assistant.question.dto.QuestionCreationRequest;
 import kr.easylab.learning_assistant.question.entity.QuestionBank;
 import kr.easylab.learning_assistant.question.service.QuestionBankService;
 import lombok.RequiredArgsConstructor;
@@ -42,5 +43,12 @@ public class QuestionBankController {
     public QuestionBankCreationResponse post(@RequestBody @Valid QuestionBankCreationRequest request) {
         Long id = questionBankService.createQuestionBank(request.getTitle());
         return new QuestionBankCreationResponse(id);
+    }
+
+    @PostMapping("{questionBankId}/questions")
+    @PreAuthorize("hasRole('ADMIN')")
+    public OkResponse postQuestion(@PathVariable Long questionBankId, @RequestBody @Valid QuestionCreationRequest request) {
+        questionBankService.createQuestion(questionBankId, request);
+        return new OkResponse();
     }
 }

@@ -203,20 +203,22 @@ export const createQuestionBankAdmin = async (title: string, password: string): 
     }
 };
 
-// Interface for the expected structure of a single question upload
+// Interface for the NEW expected structure of a single question upload
 interface ApiQuestionUploadData {
-    text: string;
-    options: { correct: boolean; value: string }[];
-    explanation?: string;
+    title: string; // Changed from 'text'
+    correct_answers: string[]; // New field
+    incorrect_answers: string[]; // New field
+    // explanation?: string; // Explanation is no longer part of the request
 }
 
 // [POST] /api/1/question-banks/{question_bank_id}/questions (Admin)
 // Accepts password as an argument
+// Updated function signature and request body
 export const uploadSingleQuestionAdmin = async (questionBankId: number, questionData: ApiQuestionUploadData, password: string): Promise<void> => {
     try {
         await apiClient.post(
             `/question-banks/${questionBankId}/questions`,
-            questionData,
+            questionData, // Send the new data structure directly
             { headers: getAdminAuthHeader(password) } // Pass password to header helper
         );
     } catch (error) {
