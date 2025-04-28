@@ -208,7 +208,7 @@ interface ApiQuestionUploadData {
     title: string; // Changed from 'text'
     correct_answers: string[]; // New field
     incorrect_answers: string[]; // New field
-    // explanation?: string; // Explanation is no longer part of the request
+    explanation?: string; // Explanation is now part of the request (optional)
 }
 
 // [POST] /api/1/question-banks/{question_bank_id}/questions (Admin)
@@ -218,7 +218,7 @@ export const uploadSingleQuestionAdmin = async (questionBankId: number, question
     try {
         await apiClient.post(
             `/question-banks/${questionBankId}/questions`,
-            questionData, // Send the new data structure directly
+            questionData, // Send the new data structure directly (now includes explanation)
             { headers: getAdminAuthHeader(password) } // Pass password to header helper
         );
     } catch (error) {

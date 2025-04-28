@@ -69,6 +69,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                 .questionBank(questionBank)
                 .answer(answerList)
                 .title(request.getTitle())
+                .explanation(request.getExplanation())
                 .build();
 
         questionBankRepository.save(question);

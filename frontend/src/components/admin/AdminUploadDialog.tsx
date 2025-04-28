@@ -24,18 +24,18 @@ import { QuestionBank as FrontendQuestionBank } from '@/types'; // Use Frontend 
 interface UserInputQuestion {
     question: string;
     answers: [string, boolean][]; // Array of [answer_text, is_correct]
-    explain: string; // Keep explain here for parsing, but it won't be sent to the API
+    explain: string; // Keep explain here for parsing, now it WILL be sent to the API
 }
 
-// Interface for the structure needed by the NEW API
+// Interface for the structure needed by the NEW API (includes explanation)
 interface ApiUploadQuestion {
     title: string;
     correct_answers: string[];
     incorrect_answers: string[];
-    // explanation is removed
+    explanation?: string; // Explanation is now included
 }
 
-// Helper to transform user input JSON to the NEW API format
+// Helper to transform user input JSON to the NEW API format (includes explanation)
 const transformQuestionData = (userInput: UserInputQuestion[]): ApiUploadQuestion[] => {
     return userInput.map(item => {
         const correctAnswers: string[] = [];
@@ -53,7 +53,7 @@ const transformQuestionData = (userInput: UserInputQuestion[]): ApiUploadQuestio
             title: item.question,
             correct_answers: correctAnswers,
             incorrect_answers: incorrectAnswers,
-            // explanation is no longer included
+            explanation: item.explain, // Map 'explain' to 'explanation'
         };
     });
 };
@@ -263,7 +263,7 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
       return;
     }
 
-    // Use the updated transform function
+    // Use the updated transform function (now includes explanation)
     const questionsToUpload = transformQuestionData(parsedData);
     if (questionsToUpload.length === 0) {
         toast.warning("업로드할 질문이 없습니다.");
@@ -281,7 +281,7 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
 
     for (let i = 0; i < questionsToUpload.length; i++) {
       try {
-        // Pass the validated password and the transformed data
+        // Pass the validated password and the transformed data (with explanation)
         await api.uploadSingleQuestionAdmin(Number(selectedBankId), questionsToUpload[i], validatedPassword);
         successCount++;
       } catch (err: any) {
@@ -430,7 +430,7 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
                         <Label htmlFor="json-data">2. 질문 데이터 (JSON)</Label>
                         <Textarea
                         id="json-data"
-                        // Updated placeholder to reflect the expected user input format
+                        // Updated placeholder to reflect the expected user input format (including explain)
                         placeholder='[{"question": "질문 내용...", "answers": [["정답 텍스트", true], ["오답 텍스트", false]], "explain": "해설 내용..."}, ...]'
                         value={jsonData}
                         onChange={(e) => setJsonData(e.target.value)}
@@ -438,9 +438,12 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
                         className="font-mono text-xs"
                         disabled={isLoading}
                         />
+                        {/* Removed the descriptive p tag below */}
+                        {/*
                         <p className="text-xs text-muted-foreground">
-                        위 형식에 맞는 JSON 배열을 입력하세요. 'answers'는 [답변 텍스트, 정답 여부(boolean)] 쌍의 배열입니다. 'explain' 필드는 API로 전송되지 않습니다.
+                        위 형식에 맞는 JSON 배열을 입력하세요. 'answers'는 [답변 텍스트, 정답 여부(boolean)] 쌍의 배열입니다. 'explain' 필드는 이제 해설 정보로 API에 전송됩니다.
                         </p>
+                        */}
                     </div>
 
                     {/* Upload Progress */}

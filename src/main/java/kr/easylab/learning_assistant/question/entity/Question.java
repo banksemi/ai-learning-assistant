@@ -26,4 +26,7 @@ public class Question {
     @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JoinColumn(name = "question_id", nullable = false)
     private List<Answer> answer;
+
+    @Column(nullable = true, length = 10000)
+    private String explanation;
 }
