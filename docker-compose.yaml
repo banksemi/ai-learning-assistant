@@ -11,6 +11,21 @@ services:
     build:
       context: frontend
       args:
-        - VITE_API_BASE_URL=http://localhost:5000/api/1
+        - VITE_API_BASE_URL=http://localhost:8080/api/1
     ports:
       - "8100:80"
+
+  backend:
+    build:
+      context: .
+
+  db:
+    image: postgres:17
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: learning_assistant_db
+      TZ: Asia/Seoul
+    ports:
+      - "127.0.0.1:5432:5432"
