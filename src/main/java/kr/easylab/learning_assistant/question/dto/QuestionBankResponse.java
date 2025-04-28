@@ -1,10 +1,11 @@
 package kr.easylab.learning_assistant.question.dto;
 
-import lombok.Builder;
+import lombok.*;
 
 @Builder
+@Getter
 public class QuestionBankResponse {
-    public Long questionBankId;
-    public String title;
-    public Long questions;
+    private final Long questionBankId;
+    private final String title;
+    private final Long questions;
 }

@@ -14,7 +14,7 @@ public class Answer {
     @Column(name = "answer_id", nullable = false)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 10000)
     private String text;
 
     @Column(nullable = false)

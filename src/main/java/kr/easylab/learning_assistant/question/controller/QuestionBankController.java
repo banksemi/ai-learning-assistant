@@ -24,14 +24,8 @@ public class QuestionBankController {
 
     @GetMapping()
     public ListResponse<QuestionBankResponse> get() {
-        List<QuestionBankResponse> questionBankResponses = new ArrayList<>();
-        for (QuestionBank bank: questionBankService.getQuestionBanks()) {
-            questionBankResponses.add(QuestionBankResponse.builder()
-                            .questionBankId(bank.getId())
-                            .questions(0L)
-                            .title(bank.getTitle())
-                    .build());
-        }
+        List<QuestionBankResponse> questionBankResponses = questionBankService.getQuestionBanks();
+
         return ListResponse.<QuestionBankResponse>builder()
                 .total((long) questionBankResponses.size())
                 .data(questionBankResponses)
