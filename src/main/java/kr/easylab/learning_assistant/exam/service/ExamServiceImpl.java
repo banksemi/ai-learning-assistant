@@ -68,12 +68,7 @@ public class ExamServiceImpl implements ExamService {
         return examRepository.getQuestionCount(examId);
     }
 
-    @Override
-    public ExamQuestionResponse getQuestion(Long examId, Long no) throws NotFoundExamQuestion {
-        ExamQuestion examQuestion = examRepository.findQuestion(examId, no);
-        if (examQuestion == null) {
-            throw new NotFoundExamQuestion();
-        }
+    private ExamQuestionResponse mapToDto(ExamQuestion examQuestion) {
         // 복사본을 사용하여 원본 엔티티 순서에 영향이 가지 않도록 함.
         List<Answer> answerList = new ArrayList<>(examQuestion.getQuestion().getAnswer());
 
@@ -83,17 +78,23 @@ public class ExamServiceImpl implements ExamService {
         Random random = new Random(randomSeed);
         Collections.shuffle(answerList, random);
 
+        List<String> actualAnswers = new ArrayList<>();
         List<Option> options = IntStream.range(0, answerList.size())
                 .mapToObj(index -> {
                     char keyChar = (char) ('A' + index);
+                    Answer answer = answerList.get(index);
+
+                    if (answer.getCorrect())
+                        actualAnswers.add(String.valueOf(keyChar));
+
                     return Option.builder()
                             .key(String.valueOf(keyChar))
-                            .value(answerList.get(index).getText())
+                            .value(answer.getText())
                             .build();
                 })
                 .collect(Collectors.toList());
 
-        return ExamQuestionResponse.builder()
+        ExamQuestionResponse examQuestionResponse = ExamQuestionResponse.builder()
                 .questionId(examQuestion.getNo())
                 .title(examQuestion.getQuestion().getTitle())
                 .answerCount(examQuestion.getQuestion().getAnswer().stream().filter(
@@ -101,13 +102,37 @@ public class ExamServiceImpl implements ExamService {
                 ).count())
                 .options(options)
                 .marker(examQuestion.getMarked())
-                .explanation(examQuestion.getQuestion().getExplanation())
                 .build();
+
+        if (!examQuestion.getUserAnswers().isEmpty()) {
+            examQuestionResponse.setExplanation(examQuestion.getQuestion().getExplanation());
+            examQuestionResponse.setActualAnswers(actualAnswers);
+        }
+        return examQuestionResponse;
+    }
+    @Override
+    public ExamQuestionResponse getQuestion(Long examId, Long no) throws NotFoundExamQuestion {
+        ExamQuestion examQuestion = examRepository.findQuestion(examId, no);
+        if (examQuestion == null) {
+            throw new NotFoundExamQuestion();
+        }
+        return mapToDto(examQuestion);
     }
 
     @Override
-    public AnswerResponse submitAnswer(Long examId, Long no, String answerKey) {
-        return null;
+    public AnswerResponse submitAnswer(Long examId, Long no, ExamAnswerRequest request) {
+        ExamQuestion examQuestion = examRepository.findQuestion(examId, no);
+        if (examQuestion == null) {
+            throw new NotFoundExamQuestion();
+        }
+
+        examQuestion.setUserAnswers(request.getUserAnswers());
+
+        ExamQuestionResponse examQuestionResponse = mapToDto(examQuestion);
+        return AnswerResponse.builder()
+                .actualAnswers(examQuestionResponse.getActualAnswers())
+                .explanation(examQuestionResponse.getExplanation())
+                .build();
     }
 
     @Override

@@ -41,6 +41,7 @@ public class ExamQuestion {
             name = "exam_question_user_answers",
             joinColumns = @JoinColumn(name = "exam_question_id")
     )
-    @Column(name = "answer", nullable = true)
+    @Column(name = "answer", nullable = false)
+    @Setter
     private List<String> userAnswers;
 }

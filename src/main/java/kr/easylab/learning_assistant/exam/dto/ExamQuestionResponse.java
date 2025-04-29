@@ -2,11 +2,13 @@ package kr.easylab.learning_assistant.exam.dto;
 
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.List;
 
 @Builder
 @Getter
+
 public class ExamQuestionResponse {
     private Long questionId;
     private String title;
@@ -14,7 +16,11 @@ public class ExamQuestionResponse {
     private List<Option> options;
     private Boolean marker;
 
-    private List<Option> userAnswers;
-    private List<Option> actualAnswers;
+    private List<String> userAnswers;
+
+    @Setter
+    private List<String> actualAnswers;
+
+    @Setter
     private String explanation;
 }

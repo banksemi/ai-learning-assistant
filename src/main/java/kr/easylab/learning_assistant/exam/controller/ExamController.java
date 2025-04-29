@@ -3,10 +3,7 @@ package kr.easylab.learning_assistant.exam.controller;
 import jakarta.validation.Valid;
 import kr.easylab.learning_assistant.admin.dto.OkResponse;
 import kr.easylab.learning_assistant.common.dto.ListResponse;
-import kr.easylab.learning_assistant.exam.dto.ExamCreationRequest;
-import kr.easylab.learning_assistant.exam.dto.ExamCreationResponse;
-import kr.easylab.learning_assistant.exam.dto.ExamQuestionResponse;
-import kr.easylab.learning_assistant.exam.dto.ExamTotalQuestionCountResponse;
+import kr.easylab.learning_assistant.exam.dto.*;
 import kr.easylab.learning_assistant.exam.service.ExamService;
 import kr.easylab.learning_assistant.question.dto.QuestionBankCreationRequest;
 import kr.easylab.learning_assistant.question.dto.QuestionBankCreationResponse;
@@ -42,5 +39,10 @@ public class ExamController {
     @GetMapping("/{exam_id}/questions/{no}")
     public ExamQuestionResponse getQuestion(@PathVariable Long exam_id, @PathVariable Long no) {
         return examService.getQuestion(exam_id, no);
+    }
+
+    @PostMapping("/{exam_id}/questions/{no}/answer")
+    public AnswerResponse submitAnswer(@PathVariable Long exam_id, @PathVariable Long no, @RequestBody @Valid ExamAnswerRequest request) {
+        return examService.submitAnswer(exam_id, no, request);
     }
 }

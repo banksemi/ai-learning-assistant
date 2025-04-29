@@ -7,7 +7,6 @@ import java.util.List;
 
 @Builder
 @Getter
-public class AnswerResponse {
-    private List<String> actualAnswers;
-    private String explanation;
+public class ExamAnswerRequest {
+    private List<String> userAnswers;
 }
