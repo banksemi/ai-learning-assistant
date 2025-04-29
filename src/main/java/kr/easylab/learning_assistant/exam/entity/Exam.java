@@ -2,6 +2,7 @@ package kr.easylab.learning_assistant.exam.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.util.List;
 
@@ -23,5 +24,6 @@ public class Exam {
     private Long randomSeed;
 
     @OneToMany(mappedBy = "exam", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("no ASC")
     private List<ExamQuestion> examQuestions;
 }

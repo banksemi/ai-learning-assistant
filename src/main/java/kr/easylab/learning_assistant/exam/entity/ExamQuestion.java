@@ -37,6 +37,10 @@ public class ExamQuestion {
     @Setter
     private Boolean marked;
 
+    @Column(nullable = true)
+    @Setter
+    private Boolean correct;
+
     @ElementCollection
     @CollectionTable(
             name = "exam_question_user_answers",

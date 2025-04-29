@@ -59,4 +59,9 @@ public class ExamController {
         examService.unmarkQuestion(exam_id, no);
         return new ResponseEntity<>(new OkResponse(), HttpStatus.NO_CONTENT);
     }
+
+    @GetMapping("/{exam_id}/result")
+    public ExamResultResponse getQuestion(@PathVariable Long exam_id) {
+        return examService.getResult(exam_id);
+    }
 }

@@ -129,6 +129,12 @@ public class ExamServiceImpl implements ExamService {
         examQuestion.setUserAnswers(request.getUserAnswers());
 
         ExamQuestionResponse examQuestionResponse = mapToDto(examQuestion);
+
+        examQuestion.setCorrect(
+                examQuestionResponse.getActualAnswers().size() == request.getUserAnswers().size() &&
+                        new HashSet<>(examQuestionResponse.getActualAnswers())
+                                .equals(new HashSet<>(request.getUserAnswers()))
+        );
         return AnswerResponse.builder()
                 .actualAnswers(examQuestionResponse.getActualAnswers())
                 .explanation(examQuestionResponse.getExplanation())
@@ -157,6 +163,32 @@ public class ExamServiceImpl implements ExamService {
 
     @Override
     public ExamResultResponse getResult(Long examId) {
-        return null;
+        Exam exam = getExam(examId); // throw NotFoundExam
+
+        ExamResultResponse result = new ExamResultResponse();
+        result.setTotalQuestions(
+                exam.getExamQuestions().stream().count()
+        );
+        result.setCorrectQuestions(
+                exam.getExamQuestions().stream().filter(ExamQuestion::getCorrect).count()
+        );
+        result.setSummary("<Summary>");
+        result.setQuestions(
+                ExamResultQuestions.builder()
+                    .marked(
+                            exam.getExamQuestions()
+                                    .stream()
+                                    .filter(ExamQuestion::getMarked)
+                                    .map(this::mapToDto)
+                                    .collect(Collectors.toList())
+                    ).incorrect(
+                            exam.getExamQuestions()
+                                    .stream()
+                                    .filter(examQuestion -> !examQuestion.getCorrect())
+                                    .map(this::mapToDto)
+                                    .collect(Collectors.toList())
+                    ).build()
+        );
+        return result;
     }
 }
