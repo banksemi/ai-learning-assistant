@@ -34,6 +34,7 @@ public class ExamQuestion {
     private Question question;
 
     @Column(nullable = false)
+    @Setter
     private Boolean marked;
 
     @ElementCollection

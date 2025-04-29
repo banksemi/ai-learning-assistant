@@ -11,6 +11,8 @@ import kr.easylab.learning_assistant.question.dto.QuestionBankResponse;
 import kr.easylab.learning_assistant.question.dto.QuestionCreationRequest;
 import kr.easylab.learning_assistant.question.service.QuestionBankService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -44,5 +46,17 @@ public class ExamController {
     @PostMapping("/{exam_id}/questions/{no}/answer")
     public AnswerResponse submitAnswer(@PathVariable Long exam_id, @PathVariable Long no, @RequestBody @Valid ExamAnswerRequest request) {
         return examService.submitAnswer(exam_id, no, request);
+    }
+
+    @PostMapping("/{exam_id}/questions/{no}/marker")
+    public ResponseEntity<OkResponse> addMarker(@PathVariable Long exam_id, @PathVariable Long no) {
+        examService.markQuestion(exam_id, no);
+        return new ResponseEntity<>(new OkResponse(), HttpStatus.NO_CONTENT);
+    }
+
+    @DeleteMapping("/{exam_id}/questions/{no}/marker")
+    public ResponseEntity<OkResponse> removeMarker(@PathVariable Long exam_id, @PathVariable Long no) {
+        examService.unmarkQuestion(exam_id, no);
+        return new ResponseEntity<>(new OkResponse(), HttpStatus.NO_CONTENT);
     }
 }

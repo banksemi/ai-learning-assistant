@@ -137,12 +137,22 @@ public class ExamServiceImpl implements ExamService {
 
     @Override
     public void markQuestion(Long examId, Long no) {
+        ExamQuestion examQuestion = examRepository.findQuestion(examId, no);
+        if (examQuestion == null) {
+            throw new NotFoundExamQuestion();
+        }
 
+        examQuestion.setMarked(true);
     }
 
     @Override
     public void unmarkQuestion(Long examId, Long no) {
+        ExamQuestion examQuestion = examRepository.findQuestion(examId, no);
+        if (examQuestion == null) {
+            throw new NotFoundExamQuestion();
+        }
 
+        examQuestion.setMarked(false);
     }
 
     @Override
