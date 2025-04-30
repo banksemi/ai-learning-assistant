@@ -74,8 +74,11 @@ public class ExamServiceImpl implements ExamService {
 
         // 항상 같은 순서로 섞이도록 id 기준 정렬
         answerList.sort(Comparator.comparing(Answer::getId));
-        Long randomSeed = examQuestion.getExam().getRandomSeed();
-        Random random = new Random(randomSeed);
+
+        Random random = new Random(
+                examQuestion.getExam().getRandomSeed() + examQuestion.getNo()
+        );
+
         Collections.shuffle(answerList, random);
 
         List<String> actualAnswers = new ArrayList<>();
@@ -105,6 +108,7 @@ public class ExamServiceImpl implements ExamService {
                 .build();
 
         if (!examQuestion.getUserAnswers().isEmpty()) {
+            examQuestionResponse.setUserAnswers(examQuestion.getUserAnswers());
             examQuestionResponse.setExplanation(examQuestion.getQuestion().getExplanation());
             examQuestionResponse.setActualAnswers(actualAnswers);
         }

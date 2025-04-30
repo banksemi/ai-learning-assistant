@@ -16,6 +16,7 @@ public class ExamQuestionResponse {
     private List<Option> options;
     private Boolean marker;
 
+    @Setter
     private List<String> userAnswers;
 
     @Setter
