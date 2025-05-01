@@ -127,11 +127,10 @@ public class ExamServiceImpl implements ExamService {
             }
 
             if (examQuestionResponse.getExplanation() != null) {
-                List<String> translateExplanation = translationService.translate(
-                        List.of(examQuestionResponse.getExplanation()),
+                examQuestionResponse.setExplanation(translationService.translate(
+                        examQuestionResponse.getExplanation(),
                         Language.KOREAN
-                );
-                examQuestionResponse.setExplanation(translateExplanation.get(0));
+                ));
             }
         }
         return examQuestionResponse;

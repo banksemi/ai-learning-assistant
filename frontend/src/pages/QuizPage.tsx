@@ -87,17 +87,22 @@ const QuizPage = () => {
     try {
       const response = await submitAnswer(currentQuestion.id, selectedOptions);
       if (response) {
+        // Correct answer IDs are now available in the updated currentQuestion from context
+        // We can determine correctness here or rely on the updated currentQuestion state
         const correctIds = response.actual_answers.sort();
         const selectedIdsSorted = [...selectedOptions].sort();
         const correct = JSON.stringify(correctIds) === JSON.stringify(selectedIdsSorted);
-        setIsCorrect(correct);
+        setIsCorrect(correct); // Set local state for feedback display
         setShowFeedback(true);
-        setIsAnswerSubmitted(true); // Mark as submitted *after* successful API call
+        setIsAnswerSubmitted(true); // Mark as submitted *after* successful API call and state updates
       } else {
         toast.error(language === 'ko' ? "답변 제출 중 오류 발생" : "Error submitting answer");
+        // If submitAnswer returns null due to error, ensure isAnswerSubmitted is false
+        setIsAnswerSubmitted(false);
       }
     } catch (err) {
         console.error("Submit error caught in component:", err);
+        setIsAnswerSubmitted(false); // Ensure not marked as submitted on error
     } finally {
         setIsSubmitting(false); // End submitting state regardless of success/error
     }
@@ -107,17 +112,32 @@ const QuizPage = () => {
     if (!currentQuestion) return 'quiz-option-default';
 
     const isSelected = selectedOptions.includes(optionId);
-    const isCorrectAnswer = currentQuestion.correctAnswerIds?.includes(optionId);
+    // Correct answer IDs are only reliable *after* submission is complete and feedback is shown
+    const isCorrectAnswer = isAnswerSubmitted ? currentQuestion.correctAnswerIds?.includes(optionId) : false;
 
-    if (isAnswerSubmitted || isSubmitting) {
-      if (isCorrectAnswer) return 'quiz-option-correct';
-      if (isSelected && !isCorrectAnswer) return 'quiz-option-incorrect-selected';
-      return 'quiz-option-disabled';
-    } else {
-      if (isSelected) return 'quiz-option-selected';
-      return 'quiz-option-default';
+    // State 1: Currently Submitting (API call in progress)
+    if (isSubmitting) {
+        // Apply a distinct "disabled selected" style if this option was selected
+        if (isSelected) {
+            return 'quiz-option-disabled-selected';
+        }
+        // Apply the standard disabled style for other options
+        return 'quiz-option-disabled';
     }
-  }, [selectedOptions, currentQuestion, isAnswerSubmitted, isSubmitting]);
+    // State 2: Answer Submitted (API call finished, feedback shown)
+    else if (isAnswerSubmitted) {
+        // Apply correct/incorrect styles based on the API response
+        if (isCorrectAnswer) return 'quiz-option-correct';
+        if (isSelected && !isCorrectAnswer) return 'quiz-option-incorrect-selected';
+        // Style for non-selected options after submission (standard disabled)
+        return 'quiz-option-disabled';
+    }
+    // State 3: Before Submission
+    else {
+        if (isSelected) return 'quiz-option-selected';
+        return 'quiz-option-default';
+    }
+  }, [selectedOptions, currentQuestion, isAnswerSubmitted, isSubmitting]); // Dependencies updated
 
   const handleBookmark = useCallback(async () => {
     // Prevent bookmarking during loading/submitting or if no question
@@ -125,7 +145,7 @@ const QuizPage = () => {
         return;
     }
     await toggleMarkQuestion(currentQuestion.id);
-  }, [toggleMarkQuestion, currentQuestion, language, isLoading, isSubmitting]); // Added isLoading/isSubmitting
+  }, [toggleMarkQuestion, currentQuestion, language, isLoading, isSubmitting]);
 
   const handleAskAI = useCallback(() => {
     setIsAiChatOpen(true);
@@ -141,6 +161,57 @@ const QuizPage = () => {
     setIsSubmitting(false);
     if (clearError) clearError();
   }, [currentQuestionIndex, clearError]);
+
+  // --- Define isLoadingNextQuestion BEFORE the return statement ---
+  // Determine if we are in the loading state for the *next* question
+  // (Context isLoading is true, but we are not currently submitting an answer)
+  const isLoadingNextQuestion = isLoading && !isSubmitting;
+
+  // --- Loading State ---
+  // Use the defined isLoadingNextQuestion variable
+  if (isLoadingNextQuestion) {
+    return (
+      <div className="min-h-screen flex flex-col items-center p-4 md:p-8 bg-background">
+         {/* Loading Skeleton */}
+         <QuizProgressBar
+            currentQuestionIndex={currentQuestionIndex}
+            totalQuestions={totalQuestions}
+            language={language}
+         />
+         <Card className="w-full max-w-3xl shadow-lg border-none">
+             <CardHeader className="px-4 py-5 md:px-6 md:pt-6 md:pb-4">
+                 {/* Keep QuestionHeader visible but show skeleton for bookmark */}
+                 <QuestionHeader
+                    currentQuestionIndex={currentQuestionIndex}
+                    totalQuestions={totalQuestions}
+                    language={language}
+                    onBookmark={() => {}} // Dummy function during load
+                    isMarked={false} // Dummy value during load
+                    isLoading={true} // Indicate loading for bookmark skeleton
+                 />
+                 {/* Skeleton for Question Content */}
+                 <Skeleton className="h-5 w-full mt-1" />
+                 <Skeleton className="h-5 w-3/4 mt-1" />
+             </CardHeader>
+             <CardContent className="px-4 pb-5 md:px-6 md:pb-6 space-y-4 md:space-y-3">
+                 {/* Skeleton for Options */}
+                 <Skeleton className="h-16 w-full rounded-lg" />
+                 <Skeleton className="h-16 w-full rounded-lg" />
+                 <Skeleton className="h-16 w-full rounded-lg" />
+                 <Skeleton className="h-16 w-full rounded-lg" />
+             </CardContent>
+             <CardFooter className="p-0 flex flex-col">
+                 {/* Skeleton for Footer */}
+                 <Skeleton className="h-px w-full" />
+                 <div className="w-full px-4 py-4 md:px-6 md:py-4 flex flex-col-reverse md:flex-row items-center justify-between gap-3 md:gap-4">
+                     <Skeleton className="h-9 w-28 rounded-md" />
+                     <Skeleton className="h-11 w-32 rounded-md" />
+                 </div>
+             </CardFooter>
+         </Card>
+      </div>
+    );
+  }
 
   // --- Error State ---
    if (error) {
@@ -162,9 +233,8 @@ const QuizPage = () => {
      );
    }
 
-  // --- No Question State (after initial load, if error didn't catch it) ---
-  // Check !isLoading here to avoid showing this during transitions
-  if (!currentQuestion && !isLoading) {
+  // --- No Question State ---
+  if (!currentQuestion && !isLoading) { // Check !isLoading here too
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center bg-background">
          <Alert variant="destructive" className="max-w-md mb-4">
@@ -181,19 +251,15 @@ const QuizPage = () => {
     );
   }
 
-  // Determine if we are in the loading state for the *next* question
-  // (Context isLoading is true, but we are not currently submitting an answer)
-  const isLoadingNextQuestion = isLoading && !isSubmitting;
+  // --- Render Quiz ---
+  if (!currentQuestion) {
+      return <div>{language === 'ko' ? '질문을 불러오는 중...' : 'Loading question...'}</div>;
+  }
 
-  // Safely access question data only if not loading the next question
-  const questionId = !isLoadingNextQuestion && currentQuestion ? currentQuestion.id : null;
-  const questionText = !isLoadingNextQuestion && currentQuestion ? currentQuestion.text : '';
-  const options = !isLoadingNextQuestion && currentQuestion ? currentQuestion.options : [];
-  const explanationText = !isLoadingNextQuestion && currentQuestion ? currentQuestion.explanation : '';
+  const { options, text: questionText, explanation: explanationText, id: questionId } = currentQuestion;
 
   return (
     <div className="min-h-screen flex flex-col items-center p-4 md:p-8 bg-background">
-      {/* Progress Bar is always visible */}
       <QuizProgressBar
         currentQuestionIndex={currentQuestionIndex}
         totalQuestions={totalQuestions}
@@ -201,84 +267,53 @@ const QuizPage = () => {
       />
       <Card ref={quizCardRef} className="w-full max-w-3xl shadow-lg border-none">
         <CardHeader className="px-4 py-5 md:px-6 md:pt-6 md:pb-4">
-          {/* Question Header: Number always visible, bookmark shows skeleton */}
+          {/* Pass isLoadingNextQuestion to header */}
           <QuestionHeader
             currentQuestionIndex={currentQuestionIndex}
             totalQuestions={totalQuestions}
             language={language}
             onBookmark={handleBookmark}
-            // Pass isMarked only if we have a valid questionId
-            isMarked={questionId ? isQuestionMarked(questionId) : false}
-            // Pass loading state to QuestionHeader
-            isLoading={isLoadingNextQuestion}
+            isMarked={isQuestionMarked(questionId)}
+            isLoading={isLoadingNextQuestion} // Pass the loading state
           />
-          {/* Question Content: Show skeleton or actual content */}
-          {isLoadingNextQuestion ? (
-            <>
-              <Skeleton className="h-5 w-full mt-1" />
-              <Skeleton className="h-5 w-3/4 mt-1" />
-            </>
-          ) : (
-            <QuestionContent questionText={questionText} />
-          )}
+          {/* Question Content is rendered normally even if header bookmark is loading */}
+          <QuestionContent questionText={questionText} />
         </CardHeader>
         <CardContent className="px-4 pb-5 md:px-6 md:pb-6 space-y-4 md:space-y-3">
-          {/* Options: Show skeleton or actual options */}
-          {isLoadingNextQuestion ? (
-            <>
-              <Skeleton className="h-16 w-full rounded-lg" />
-              <Skeleton className="h-16 w-full rounded-lg" />
-              <Skeleton className="h-16 w-full rounded-lg" />
-              <Skeleton className="h-16 w-full rounded-lg" />
-            </>
-          ) : (
-            <>
-              <QuestionOptions
-                // Pass currentQuestion only if available and not loading
-                question={currentQuestion!} // Assert non-null as we checked !isLoadingNextQuestion
-                options={options}
-                selectedOptions={selectedOptions}
-                onOptionChange={handleOptionChange}
-                isAnswerSubmitted={isAnswerSubmitted}
-                isSubmitting={isSubmitting}
-                getOptionStyle={getOptionStyle}
-              />
-              {/* Feedback Section: Only shown after submit, not during loading */}
-              <FeedbackSection
-                showFeedback={showFeedback}
-                isCorrect={isCorrect}
-                explanationText={explanationText}
-                language={language}
-              />
-            </>
-          )}
+          {/* Options are rendered normally */}
+          <QuestionOptions
+            question={currentQuestion}
+            options={options}
+            selectedOptions={selectedOptions}
+            onOptionChange={handleOptionChange}
+            isAnswerSubmitted={isAnswerSubmitted}
+            isSubmitting={isSubmitting}
+            getOptionStyle={getOptionStyle}
+          />
+          {/* Feedback Section */}
+          <FeedbackSection
+            showFeedback={showFeedback}
+            isCorrect={isCorrect}
+            explanationText={explanationText}
+            language={language}
+          />
         </CardContent>
         <CardFooter className="p-0 flex flex-col">
-          {/* Footer: Show skeleton or actual footer */}
-          {isLoadingNextQuestion ? (
-            <>
-              <Skeleton className="h-px w-full" />
-              <div className="w-full px-4 py-4 md:px-6 md:py-4 flex flex-col-reverse md:flex-row items-center justify-between gap-3 md:gap-4">
-                <Skeleton className="h-9 w-28 rounded-md" />
-                <Skeleton className="h-11 w-32 rounded-md" />
-              </div>
-            </>
-          ) : (
-            <QuizFooter
-              language={language}
-              isAnswerSubmitted={isAnswerSubmitted}
-              isSubmitting={isSubmitting}
-              selectedOptions={selectedOptions}
-              currentQuestionIndex={currentQuestionIndex}
-              totalQuestions={totalQuestions}
-              onSubmit={handleSubmit}
-              onNext={handleNext}
-              onAskAI={handleAskAI}
-            />
-          )}
+          {/* Footer is rendered normally */}
+          <QuizFooter
+            language={language}
+            isAnswerSubmitted={isAnswerSubmitted}
+            isSubmitting={isSubmitting}
+            selectedOptions={selectedOptions}
+            currentQuestionIndex={currentQuestionIndex}
+            totalQuestions={totalQuestions}
+            onSubmit={handleSubmit}
+            onNext={handleNext}
+            onAskAI={handleAskAI}
+          />
         </CardFooter>
       </Card>
-      {/* AI Chat Popup: Render only if not loading and question exists */}
+      {/* AI Chat Popup */}
       {!isLoadingNextQuestion && currentQuestion && (
         <AiChatPopup
           isOpen={isAiChatOpen}
