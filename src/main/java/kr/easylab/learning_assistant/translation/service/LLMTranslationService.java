@@ -9,6 +9,7 @@ import kr.easylab.learning_assistant.translation.dto.TranslatedResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.util.List;
 
@@ -42,29 +43,29 @@ public class LLMTranslationService implements TranslationService {
     """;
 
     @Override
+    @Cacheable("translations")
     public String translate(String text, Language language) {
         return translate(List.of(text), language).get(0);
     }
 
     @Override
+    @Cacheable("translations")
     public List<String> translate(List<String> texts, Language language) {
-        String jsonText;
         try {
-            jsonText = objectMapper.writeValueAsString(texts);
+            String jsonText = objectMapper.writeValueAsString(texts);
+
+            TranslatedResponse result = llmService.generate(
+                    prompt + "# 목표 언어: \n" + language,
+                    List.of(LLMMessage.builder()
+                            .role(LLMMessage.Role.USER)
+                            .text(jsonText)
+                            .build()),
+                    TranslatedResponse.class
+            );
+            log.info("translation result: {}", result);
+            return result.getTranslatedTexts();
         } catch (JsonProcessingException e) {
             throw new RuntimeException("객체를 JSON으로 변환하는 중 오류가 발생했습니다.", e);
         }
-
-        TranslatedResponse result = llmService.generate(
-                prompt + "# 목표 언어: \n" + language,
-                List.of(
-                        LLMMessage.builder()
-                                .role(LLMMessage.Role.USER)
-                                .text(jsonText)
-                                .build())
-                , TranslatedResponse.class
-        );
-        log.info("translation result: {}", result);
-        return result.getTranslatedTexts();
     }
 }
