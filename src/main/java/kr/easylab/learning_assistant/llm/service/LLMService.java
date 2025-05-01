@@ -6,6 +6,5 @@ import java.util.List;
 
 public interface LLMService {
     String generate(String prompt, List<LLMMessage> messages);
-    // with stream
     <T> T generate(String prompt, List<LLMMessage> messages, Class<T> clazz);
 }

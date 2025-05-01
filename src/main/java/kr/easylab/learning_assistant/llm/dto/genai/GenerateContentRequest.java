@@ -10,4 +10,5 @@ import java.util.List;
 public class GenerateContentRequest {
     private SystemInstruction systemInstruction;
     private List<Content> contents;
+    private GenerationConfig generationConfig;
 }
