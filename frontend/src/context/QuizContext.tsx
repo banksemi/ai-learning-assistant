@@ -163,11 +163,14 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setError("Cannot finish quiz: Exam ID or settings missing.");
       return;
     }
+    // 1. Navigate to calculating page immediately
+    navigate('/calculating-results');
+    // 2. Set loading state for the API call
     setIsLoading(true);
-    clearError(); // Use clearError here
-    navigate('/calculating-results'); // Navigate immediately
+    clearError();
 
     try {
+      // 3. Fetch results
       const apiResult: ApiResultResponse = await api.getResults(examId);
 
       const score = apiResult.total_questions > 0
@@ -175,7 +178,6 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         : 0;
 
       // Map API result questions to frontend Question type
-      // These already contain explanation, user_answers, actual_answers
       const markedQuestions = apiResult.questions.marked.map(mapApiResultQuestionToFrontend);
       const incorrectQuestions = apiResult.questions.incorrect.map(mapApiResultQuestionToFrontend);
 
@@ -185,22 +187,24 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         summary: apiResult.summary,
         markedQuestions: markedQuestions,
         incorrectQuestions: incorrectQuestions,
-        // Add totalQuestions and correctCount from API response
         totalQuestions: apiResult.total_questions,
         correctCount: apiResult.correct_questions,
       };
 
+      // 4. Set the result state *before* navigating away
       setResult(finalResult);
       setIsQuizFinished(true);
-      // DO NOT clear questions state here, needed for results page original index lookup
-      // setQuestions([]);
-      // setCurrentQuestion(null);
+
+      // 5. Navigate to the results page *after* state is set
+      navigate('/results');
 
     } catch (err: any) {
       console.error("Error finishing quiz:", err);
       setError(err.message || 'Failed to load results.');
-      navigate('/quiz'); // Navigate back to quiz on error? Or show error page?
+      // On error, navigate to results page, which will show the error state
+      navigate('/results');
     } finally {
+      // 6. Set loading false *after* everything, including navigation attempts
       setIsLoading(false);
     }
   }, [examId, settings, navigate, clearError]); // Added dependencies

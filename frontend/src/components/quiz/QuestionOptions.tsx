@@ -13,6 +13,7 @@ interface QuestionOptionsProps {
   selectedOptions: string[];
   onOptionChange: (optionId: string) => void;
   isAnswerSubmitted: boolean;
+  isSubmitting: boolean; // Add isSubmitting prop
   getOptionStyle: (optionId: string) => string;
 }
 
@@ -22,24 +23,26 @@ const QuestionOptions: React.FC<QuestionOptionsProps> = ({
   selectedOptions,
   onOptionChange,
   isAnswerSubmitted,
+  isSubmitting, // Use isSubmitting prop
   getOptionStyle,
 }) => {
+  const isDisabled = isAnswerSubmitted || isSubmitting; // Combine disabled states
+
   return (
     <>
       {question.type === 'single' ? (
-        // Increased spacing between radio options on mobile (space-y-4)
         <RadioGroup
           value={selectedOptions[0] || ''}
           onValueChange={onOptionChange}
-          disabled={isAnswerSubmitted}
+          disabled={isDisabled} // Use combined disabled state
           className="space-y-4 md:space-y-3"
         >
           {options.map((option) => (
             <div
               key={option.id}
-              // Increased padding within each option on mobile (p-4)
               className={cn('quiz-option p-4', getOptionStyle(option.id))}
-              onClick={() => !isAnswerSubmitted && onOptionChange(option.id)}
+              // Prevent click if disabled
+              onClick={() => !isDisabled && onOptionChange(option.id)}
             >
               <RadioGroupItem value={option.id} id={option.id} className="mt-1 border-muted-foreground data-[state=checked]:border-primary" />
               <Label htmlFor={option.id} className='quiz-option-label'>
@@ -49,20 +52,19 @@ const QuestionOptions: React.FC<QuestionOptionsProps> = ({
           ))}
         </RadioGroup>
       ) : (
-         // Increased spacing between checkbox options on mobile (space-y-4)
         <div className="space-y-4 md:space-y-3">
           {options.map((option) => (
             <div
               key={option.id}
-               // Increased padding within each option on mobile (p-4)
               className={cn('quiz-option p-4', getOptionStyle(option.id))}
-              onClick={() => !isAnswerSubmitted && onOptionChange(option.id)}
+               // Prevent click if disabled
+              onClick={() => !isDisabled && onOptionChange(option.id)}
             >
               <Checkbox
                 id={option.id}
                 checked={selectedOptions.includes(option.id)}
-                onCheckedChange={() => onOptionChange(option.id)} // Checkbox uses onCheckedChange
-                disabled={isAnswerSubmitted}
+                onCheckedChange={() => onOptionChange(option.id)}
+                disabled={isDisabled} // Use combined disabled state
                 className="mt-1 border-muted-foreground data-[state=checked]:border-primary data-[state=checked]:bg-primary"
               />
               <Label htmlFor={option.id} className='quiz-option-label'>
