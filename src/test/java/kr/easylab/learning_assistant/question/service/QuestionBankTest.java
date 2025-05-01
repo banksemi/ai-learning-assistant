@@ -1,6 +1,6 @@
 package kr.easylab.learning_assistant.question.service;
 
-import kr.easylab.learning_assistant.question.entity.Language;
+import kr.easylab.learning_assistant.translation.dto.Language;
 import kr.easylab.learning_assistant.question.entity.QuestionBank;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

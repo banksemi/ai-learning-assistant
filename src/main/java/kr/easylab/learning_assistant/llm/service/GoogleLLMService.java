@@ -3,8 +3,10 @@ package kr.easylab.learning_assistant.llm.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.jsonSchema.JsonSchema;
-import com.fasterxml.jackson.module.jsonSchema.factories.SchemaFactoryWrapper;
+import io.swagger.v3.core.converter.AnnotatedType;
+import io.swagger.v3.core.converter.ModelConverters;
+import io.swagger.v3.core.converter.ResolvedSchema;
+import io.swagger.v3.oas.models.media.Schema;
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.constraints.NotNull;
 import kr.easylab.learning_assistant.llm.dto.LLMMessage;
@@ -22,6 +24,7 @@ import reactor.core.publisher.Mono;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -33,19 +36,24 @@ public class GoogleLLMService implements LLMService {
 
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
+    private final GoogleSchemaMappingService schemaMappingService;
+    private final GoogleSchemaMappingService googleSchemaMappingService;
 
     public GoogleLLMService(
             @Value("${llm.google.base_url}") String baseURL,
             @Value("${llm.google.api_key}") String apiKey,
-            ObjectMapper objectMapper
-    ) {
+            ObjectMapper objectMapper,
+            GoogleSchemaMappingService schemaMappingService,
+            GoogleSchemaMappingService googleSchemaMappingService) {
         this.baseURL = baseURL;
         this.apiKey = apiKey;
         this.objectMapper = objectMapper;
+        this.schemaMappingService = schemaMappingService;
 
         this.webClient = WebClient.builder()
                 .baseUrl(baseURL)
                 .build();
+        this.googleSchemaMappingService = googleSchemaMappingService;
     }
 
     private String mapRole(LLMMessage.Role role) {
@@ -113,40 +121,17 @@ public class GoogleLLMService implements LLMService {
         return call(prompt, messages, null);
     }
 
-    private <T> Schema generateSchemaForClass(Class<T> clazz) {
-        SchemaFactoryWrapper visitor = new SchemaFactoryWrapper();
-        try {
-            objectMapper.acceptJsonFormatVisitor(
-                    objectMapper.constructType(clazz), visitor);
-
-            JsonSchema jsonSchema = visitor.finalSchema();
-
-            String schemaJsonString = objectMapper.writeValueAsString(jsonSchema);
-            log.info("Generated JSON Schema string for {}: {}", clazz.getName(), schemaJsonString);
-
-            return objectMapper.readValue(schemaJsonString, Schema.class);
-        } catch (JsonProcessingException e) {
-            log.error("Failed to generate schema for class: {}", clazz.getName(), e);
-            return null;
-        }
-
-    }
     @Override
     public <T> T generate(String prompt, List<LLMMessage> messages, Class<T> clazz) {
-
-        Schema schema = generateSchemaForClass(clazz); // 업데이트된 메서드 호출
-        if (schema == null) {
-            log.error("Failed to generate schema for class: {}", clazz.getName());
-            throw new IllegalArgumentException("Could not generate schema for the given class.");
-        }
-
+        ResolvedSchema resolvedSchema = ModelConverters.getInstance()
+                .resolveAsResolvedSchema(new AnnotatedType(clazz).resolveAsRef(false));
 
         String responseText = call(
                 prompt,
                 messages,
                 GenerationConfig.builder()
                         .responseMimeType("application/json")
-                        .responseSchema(schema)
+                        .responseSchema(googleSchemaMappingService.mapToGoogleSchema(resolvedSchema.schema))
                         .build()
         );
 

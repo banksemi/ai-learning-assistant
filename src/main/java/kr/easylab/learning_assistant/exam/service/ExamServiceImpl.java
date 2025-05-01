@@ -7,10 +7,10 @@ import kr.easylab.learning_assistant.exam.exception.NotFoundExam;
 import kr.easylab.learning_assistant.exam.exception.NotFoundExamQuestion;
 import kr.easylab.learning_assistant.exam.repository.ExamRepository;
 import kr.easylab.learning_assistant.question.entity.Answer;
-import kr.easylab.learning_assistant.question.entity.Language;
 import kr.easylab.learning_assistant.question.entity.Question;
-import kr.easylab.learning_assistant.question.entity.QuestionBank;
 import kr.easylab.learning_assistant.question.service.QuestionBankService;
+import kr.easylab.learning_assistant.translation.dto.Language;
+import kr.easylab.learning_assistant.translation.service.TranslationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +25,7 @@ import java.util.stream.IntStream;
 public class ExamServiceImpl implements ExamService {
     private final QuestionBankService questionBankService;
     private final ExamRepository examRepository;
+    private final TranslationService translationService;
 
     @Override
     public Long createExam(ExamCreationRequest request) {
@@ -111,6 +112,27 @@ public class ExamServiceImpl implements ExamService {
             examQuestionResponse.setUserAnswers(examQuestion.getUserAnswers());
             examQuestionResponse.setExplanation(examQuestion.getQuestion().getExplanation());
             examQuestionResponse.setActualAnswers(actualAnswers);
+        }
+
+        // Translate
+        if (examQuestion.getExam().getLanguage() != null) {
+            List<String> data = new ArrayList<>();
+            data.add(examQuestionResponse.getTitle());
+            data.addAll(examQuestionResponse.getOptions().stream().map(Option::getValue).toList());
+
+            List<String> translate = translationService.translate(data, Language.KOREAN);
+            examQuestionResponse.setTitle(translate.get(0));
+            for (int i = 1; i < translate.size(); i++) {
+                examQuestionResponse.getOptions().get(i - 1).setValue(translate.get(i));
+            }
+
+            if (examQuestionResponse.getExplanation() != null) {
+                List<String> translateExplanation = translationService.translate(
+                        List.of(examQuestionResponse.getExplanation()),
+                        Language.KOREAN
+                );
+                examQuestionResponse.setExplanation(translateExplanation.get(0));
+            }
         }
         return examQuestionResponse;
     }

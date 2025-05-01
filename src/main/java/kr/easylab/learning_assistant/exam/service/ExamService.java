@@ -4,7 +4,6 @@ import kr.easylab.learning_assistant.exam.dto.*;
 import kr.easylab.learning_assistant.exam.entity.Exam;
 import kr.easylab.learning_assistant.exam.exception.NotFoundExam;
 import kr.easylab.learning_assistant.exam.exception.NotFoundExamQuestion;
-import kr.easylab.learning_assistant.question.entity.Language;
 
 public interface ExamService {
     Long createExam(ExamCreationRequest request);
