@@ -130,7 +130,7 @@
     content: none;
   }
   .prose code {
-    @apply font-normal bg-muted text-foreground px-1 py-0.5 rounded-sm text-sm; /* Ensure code font size is consistent */
+    @apply font-normal bg-muted text-foreground px-1 py-0.5 rounded-sm text-sm; /* Keep code blocks slightly smaller */
   }
   .prose pre {
     /* Changed padding from p-2 to p-0, kept border */
@@ -144,7 +144,8 @@
       @apply text-foreground;
   }
   .prose a {
-      @apply text-primary hover:text-primary/80;
+      /* Added overflow-wrap: break-word; */
+      @apply text-primary hover:text-primary/80 overflow-wrap-break-word;
   }
   .prose blockquote {
       @apply border-l-primary text-muted-foreground;
@@ -162,8 +163,9 @@
       @apply border-border;
   }
   /* Ensure consistent font size within prose */
-  .prose p, .prose li, .prose blockquote {
-      @apply text-base; /* Or text-sm if preferred */
+  /* Changed text-sm to text-base */
+  .prose p, .prose li, .prose blockquote, .prose ul, .prose ol {
+      @apply text-base; /* Increased font size */
   }
 }
 
@@ -198,6 +200,7 @@
      @apply flex items-start space-x-3 p-4 border rounded-lg transition-colors duration-200 cursor-pointer;
    }
    .quiz-option-label {
+      /* Ensure label also uses text-base if needed, or let prose handle it */
       @apply font-normal flex-1 text-left cursor-pointer pt-0.5; /* Adjust alignment slightly */
    }
    .quiz-option-default {
@@ -264,10 +267,17 @@
        @apply font-semibold flex items-center gap-2 mb-1;
    }
    .feedback-alert-description {
-       @apply prose prose-sm dark:prose-invert max-w-none;
+       /* Changed prose-sm to prose-base */
+       @apply prose prose-base dark:prose-invert max-w-none; /* Increased font size */
    }
 
 }
 
 /* Add plugin for typography */
 @plugin "@tailwindcss/typography";
+
+/* Helper class for breaking long words/URLs */
+.overflow-wrap-break-word {
+  overflow-wrap: break-word;
+  word-break: break-word; /* Consider adding word-break as well for broader compatibility */
+}

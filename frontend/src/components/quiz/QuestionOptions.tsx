@@ -35,7 +35,8 @@ const QuestionOptions: React.FC<QuestionOptionsProps> = ({
           value={selectedOptions[0] || ''}
           onValueChange={onOptionChange}
           disabled={isDisabled} // Use combined disabled state
-          className="space-y-4 md:space-y-3"
+          // Further reduced spacing to space-y-2 md:space-y-1
+          className="space-y-2 md:space-y-1"
         >
           {options.map((option) => (
             <div
@@ -52,7 +53,8 @@ const QuestionOptions: React.FC<QuestionOptionsProps> = ({
           ))}
         </RadioGroup>
       ) : (
-        <div className="space-y-4 md:space-y-3">
+        // Further reduced spacing to space-y-2 md:space-y-1
+        <div className="space-y-2 md:space-y-1">
           {options.map((option) => (
             <div
               key={option.id}
