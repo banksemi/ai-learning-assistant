@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import kr.easylab.learning_assistant.admin.dto.OkResponse;
 import kr.easylab.learning_assistant.common.dto.ListResponse;
 import kr.easylab.learning_assistant.exam.dto.*;
+import kr.easylab.learning_assistant.exam.service.ExamChatbotService;
 import kr.easylab.learning_assistant.exam.service.ExamService;
 import kr.easylab.learning_assistant.question.dto.QuestionBankCreationRequest;
 import kr.easylab.learning_assistant.question.dto.QuestionBankCreationResponse;
@@ -23,7 +24,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ExamController {
     private final ExamService examService;
-
+    private final ExamChatbotService examChatbotService;
 
     @PostMapping()
     public ExamCreationResponse post(@RequestBody @Valid ExamCreationRequest request) {
@@ -63,5 +64,10 @@ public class ExamController {
     @GetMapping("/{exam_id}/result")
     public ExamResultResponse getQuestion(@PathVariable Long exam_id) {
         return examService.getResult(exam_id);
+    }
+
+    @PostMapping("/{exam_id}/questions/{no}/chat")
+    public ExamChatResponse addMarker(@PathVariable Long exam_id, @PathVariable Long no, @RequestBody @Valid ExamChatRequest request) {
+        return examChatbotService.chat(exam_id, no, request);
     }
 }
