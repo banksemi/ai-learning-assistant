@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 public class GoogleLLMService implements LLMService {
     private final String baseURL;
     private final String apiKey;
+    private final String model;
 
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
@@ -42,11 +43,13 @@ public class GoogleLLMService implements LLMService {
     public GoogleLLMService(
             @Value("${llm.google.base_url}") String baseURL,
             @Value("${llm.google.api_key}") String apiKey,
+            @Value("${llm.google.model}") String model,
             ObjectMapper objectMapper,
             GoogleSchemaMappingService schemaMappingService,
             GoogleSchemaMappingService googleSchemaMappingService) {
         this.baseURL = baseURL;
         this.apiKey = apiKey;
+        this.model = model;
         this.objectMapper = objectMapper;
         this.schemaMappingService = schemaMappingService;
 
@@ -85,7 +88,7 @@ public class GoogleLLMService implements LLMService {
 
         Mono<GenerateContentResponse> stringMono = webClient.post()
                 .uri(uriBuilder -> uriBuilder
-                        .path("/v1beta/models/gemini-2.0-flash:generateContent")
+                        .path("/v1beta/models/" + model + ":generateContent")
                         .queryParam("key", apiKey)
                         .build())
                 .bodyValue(request)

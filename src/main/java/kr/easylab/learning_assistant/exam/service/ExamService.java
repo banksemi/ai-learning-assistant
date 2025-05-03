@@ -16,5 +16,4 @@ public interface ExamService {
     void markQuestion(Long examId, Long no);
     void unmarkQuestion(Long examId, Long no);
 
-    ExamResultResponse getResult(Long examId);
 }

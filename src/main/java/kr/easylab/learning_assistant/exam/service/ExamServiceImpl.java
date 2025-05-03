@@ -24,6 +24,7 @@ public class ExamServiceImpl implements ExamService {
     private final QuestionBankService questionBankService;
     private final ExamRepository examRepository;
     private final ExamQuestionTranslationService examQuestionTranslationService;
+    private final ExamQuestionMapper examQuestionMapper;
 
     @Override
     public Long createExam(ExamCreationRequest request) {
@@ -80,60 +81,6 @@ public class ExamServiceImpl implements ExamService {
         );
     }
 
-    private ExamQuestionResponse mapToDto(ExamQuestion examQuestion) {
-        // 복사본을 사용하여 원본 엔티티 순서에 영향이 가지 않도록 함.
-        List<Answer> answerList = new ArrayList<>(examQuestion.getQuestion().getAnswer());
-
-        // 항상 같은 순서로 섞이도록 id 기준 정렬
-        answerList.sort(Comparator.comparing(Answer::getId));
-
-        Random random = new Random(
-                examQuestion.getExam().getRandomSeed() + examQuestion.getNo()
-        );
-
-        Collections.shuffle(answerList, random);
-
-        ExamTranslationResponse translation = examQuestionTranslationService.translateAnswers(
-                examQuestion.getExam().getId(),
-                examQuestion.getNo()
-        ).join();
-
-        List<String> actualAnswers = new ArrayList<>();
-        List<Option> options = IntStream.range(0, answerList.size())
-                .mapToObj(index -> {
-                    char keyChar = (char) ('A' + index);
-                    Answer answer = answerList.get(index);
-
-                    if (answer.getCorrect())
-                        actualAnswers.add(String.valueOf(keyChar));
-
-                    return Option.builder()
-                            .key(String.valueOf(keyChar))
-                            .value(translation.getAnswers().get(answer.getId()))
-                            .build();
-                })
-                .collect(Collectors.toList());
-
-        ExamQuestionResponse examQuestionResponse = ExamQuestionResponse.builder()
-                .questionId(examQuestion.getNo())
-                .title(translation.getTitle())
-                .answerCount(examQuestion.getQuestion().getAnswer().stream().filter(
-                        Answer::getCorrect
-                ).count())
-                .options(options)
-                .marker(examQuestion.getMarked())
-                .build();
-
-        if (!examQuestion.getUserAnswers().isEmpty()) {
-            examQuestionResponse.setUserAnswers(examQuestion.getUserAnswers());
-            examQuestionResponse.setExplanation(examQuestionTranslationService.translateExplanation(
-                    examQuestion.getExam().getId(),
-                    examQuestion.getNo()
-            ).join());
-            examQuestionResponse.setActualAnswers(actualAnswers);
-        }
-        return examQuestionResponse;
-    }
     @Override
     public ExamQuestionResponse getQuestion(Long examId, Long no) throws NotFoundExamQuestion {
         ExamQuestion examQuestion = examRepository.findQuestion(examId, no);
@@ -141,7 +88,7 @@ public class ExamServiceImpl implements ExamService {
             throw new NotFoundExamQuestion();
         }
         prepareNextTranslation(examQuestion);
-        return mapToDto(examQuestion);
+        return examQuestionMapper.mapToDto(examQuestion);
     }
 
     @Override
@@ -153,7 +100,7 @@ public class ExamServiceImpl implements ExamService {
 
         examQuestion.setUserAnswers(request.getUserAnswers());
 
-        ExamQuestionResponse examQuestionResponse = mapToDto(examQuestion);
+        ExamQuestionResponse examQuestionResponse = examQuestionMapper.mapToDto(examQuestion);
 
         examQuestion.setCorrect(
                 examQuestionResponse.getActualAnswers().size() == request.getUserAnswers().size() &&
@@ -184,36 +131,5 @@ public class ExamServiceImpl implements ExamService {
         }
 
         examQuestion.setMarked(false);
-    }
-
-    @Override
-    public ExamResultResponse getResult(Long examId) {
-        Exam exam = getExam(examId); // throw NotFoundExam
-
-        ExamResultResponse result = new ExamResultResponse();
-        result.setTotalQuestions(
-                exam.getExamQuestions().stream().count()
-        );
-        result.setCorrectQuestions(
-                exam.getExamQuestions().stream().filter(ExamQuestion::getCorrect).count()
-        );
-        result.setSummary("<Summary>");
-        result.setQuestions(
-                ExamResultQuestions.builder()
-                    .marked(
-                            exam.getExamQuestions()
-                                    .stream()
-                                    .filter(ExamQuestion::getMarked)
-                                    .map(this::mapToDto)
-                                    .collect(Collectors.toList())
-                    ).incorrect(
-                            exam.getExamQuestions()
-                                    .stream()
-                                    .filter(examQuestion -> !examQuestion.getCorrect())
-                                    .map(this::mapToDto)
-                                    .collect(Collectors.toList())
-                    ).build()
-        );
-        return result;
     }
 }
