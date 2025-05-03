@@ -12,7 +12,8 @@ import {
     ApiResultResponse, // API response for results
     QuestionOption, // Frontend Option type
     ApiQuestionOption, // API Option type
-    ApiResultQuestionDetail // API Result question detail type
+    ApiResultQuestionDetail, // API Result question detail type
+    QuestionBank as FrontendQuestionBank // Import Frontend QuestionBank type
 } from '@/types';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "sonner"; // Using sonner for notifications
@@ -60,7 +61,7 @@ const mapApiResultQuestionToFrontend = (apiDetail: ApiResultQuestionDetail): Que
 
 interface QuizContextProps {
   settings: QuizSettings | null;
-  // setSettings: (settings: QuizSettings) => void; // Might not be needed directly if startQuiz handles it
+  selectedBankName: string | null; // Added state for bank name
   examId: number | null; // Added examId state
   currentQuestion: Question | null; // Store the currently fetched question
   questions: Question[]; // Keep original questions list for results page (original index)
@@ -93,6 +94,7 @@ const QuizContext = createContext<QuizContextProps | undefined>(undefined);
 
 export const QuizProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [settings, setSettingsState] = useState<QuizSettings | null>(null);
+  const [selectedBankName, setSelectedBankName] = useState<string | null>(null); // State for bank name
   const [examId, setExamId] = useState<number | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]); // Keep state for original questions
@@ -148,14 +150,16 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     if (examId !== null && !isQuizFinished && totalQuestions > 0 && currentQuestionIndex < totalQuestions) {
         // Fetch if the question at the current index hasn't been fetched yet
-        if (!questions[currentQuestionIndex]) {
+        // Also check if the currentQuestion state is null (e.g., after reset or initial load)
+        if (!questions[currentQuestionIndex] || !currentQuestion) {
              fetchQuestion(examId, currentQuestionIndex, language);
-        } else {
-            // If already fetched, just set it as the current question
+        } else if (questions[currentQuestionIndex] && currentQuestion?.id !== questions[currentQuestionIndex].id) {
+            // If already fetched but not the current one, set it
             setCurrentQuestion(questions[currentQuestionIndex]);
         }
     }
-  }, [examId, currentQuestionIndex, isQuizFinished, fetchQuestion, language, totalQuestions, questions]); // Added questions to dependencies
+  // Added currentQuestion to dependencies to handle refetch/reset scenarios
+  }, [examId, currentQuestionIndex, isQuizFinished, fetchQuestion, language, totalQuestions, questions, currentQuestion]);
 
   // Define finishQuiz *before* setCurrentQuestionIndex
   const finishQuiz = useCallback(async () => {
@@ -234,7 +238,28 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const startQuiz = useCallback(async (newSettings: QuizSettings) => {
     setIsLoading(true);
     clearError(); // Use clearError here
+    let fetchedBanks: FrontendQuestionBank[] = []; // Variable to store fetched banks
+
     try {
+      // Fetch available banks to get the name
+      try {
+          const banksResponse = await api.getQuestionBanks();
+          fetchedBanks = banksResponse.data.map(bank => ({
+              id: bank.question_bank_id,
+              name: bank.title,
+              questions: bank.questions
+          }));
+      } catch (bankError: any) {
+          console.error("Error fetching banks during startQuiz:", bankError);
+          // Decide if this error should prevent the quiz from starting
+          throw new Error("Failed to load question bank details.");
+      }
+
+      // Find the selected bank name
+      const bankDetails = fetchedBanks.find(b => b.id === newSettings.questionBankId);
+      const bankName = bankDetails ? bankDetails.name : null;
+
+      // Create the exam
       const examData = await api.createExam({
         question_bank_id: newSettings.questionBankId,
         language: newSettings.language,
@@ -258,6 +283,7 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 
       setSettingsState(newSettings);
+      setSelectedBankName(bankName); // Set the bank name state
       setExamId(newExamId);
       setTotalQuestions(newSettings.numberOfQuestions); // Use the adjusted number
       setCurrentQuestionIndexState(0); // Reset index to 0
@@ -277,6 +303,7 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Reset state partially on error
       setExamId(null);
       setTotalQuestions(0);
+      setSelectedBankName(null); // Reset bank name on error
     } finally {
       setIsLoading(false);
     }
@@ -375,6 +402,7 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const resetQuiz = useCallback(() => {
     setSettingsState(null);
+    setSelectedBankName(null); // Reset bank name
     setExamId(null);
     setCurrentQuestion(null);
     setQuestions([]); // Clear questions list on reset
@@ -413,6 +441,7 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // by wrapping function definitions in useCallback and including them in useMemo dependencies.
   const contextValue = useMemo(() => ({
     settings,
+    selectedBankName, // Provide bank name
     examId,
     currentQuestion,
     questions, // Provide original questions list
@@ -435,7 +464,7 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     clearError, // Use the memoized version
     sendChatMessage, // Use the memoized version
   }), [
-      settings, examId, currentQuestion, questions, currentQuestionIndex, totalQuestions, userAnswers, result,
+      settings, selectedBankName, examId, currentQuestion, questions, currentQuestionIndex, totalQuestions, userAnswers, result,
       isQuizFinished, language, isLoading, error,
       // Add all memoized functions as dependencies for useMemo
       setCurrentQuestionIndex, submitAnswer, startQuiz, resetQuiz, setLanguage,

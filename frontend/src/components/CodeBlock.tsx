@@ -17,12 +17,15 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ language, value }) => {
       style={atomDark} // Use the imported style
       showLineNumbers={false} // Optional: show line numbers
       wrapLines={true}
+      wrapLongLines={true} // Add wrapLongLines prop
       // Added margin: 0 to customStyle
       customStyle={{
           padding: '0.75rem',
           margin: 0, // Explicitly remove margin
           borderRadius: '0.375rem',
-          fontSize: '0.875rem'
+          fontSize: '0.875rem',
+          wordBreak: 'break-all', // Add wordBreak as a fallback
+          whiteSpace: 'pre-wrap' // Ensure white-space allows wrapping
       }} // Tailwind p-3, md radius, sm font size
     >
       {String(value).replace(/\n$/, '')}

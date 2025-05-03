@@ -6,47 +6,48 @@
 
 @layer base {
   :root {
-    /* Changed background hue to 220, increased saturation slightly */
-    --background: 220 15% 97%; /* Slightly blue-tinted light gray */
+    /* Page Background: Keep as is */
+    --background: 220 10% 96%;
     --foreground: 222.2 84% 4.9%;
 
-    --card: 0 0% 100%; /* White card */
+    --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    /* Primary: Reverted to Blue shade */
-    --primary: 221.2 83.2% 53.3%; /* Blue */
-    --primary-foreground: 210 40% 98%; /* White */
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
 
-    /* Secondary: Keep as a neutral gray */
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary (Header): Make darker */
+    --secondary: 220 18% 50%; /* Darker blue-gray */
+    /* Secondary Foreground (Header Text): Keep white */
+    --secondary-foreground: 0 0% 100%;
 
+    /* Muted remains gray for other elements */
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
 
-    --destructive: 0 72% 51%; /* Slightly adjusted red */
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Success color for correct answers */
     --success: 145 63% 49%;
     --success-foreground: 0 0% 100%;
 
-    /* Error color for incorrect answers (can reuse destructive or define separately) */
     --error: 0 72% 51%;
     --error-foreground: 0 0% 100%;
 
-
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%; /* Reverted ring to match primary blue */
+    --ring: 221.2 83.2% 53.3%;
 
-    --radius: 0.5rem; /* Keep existing radius */
+    --radius: 0.5rem;
+
+    /* Header Border Color: Adjust to be slightly darker than new secondary */
+    --header-border: 220 18% 45%;
 
     /* Sidebar colors remain unchanged unless specified */
     --sidebar-background: 0 0% 98%;
@@ -60,44 +61,46 @@
   }
 
   .dark {
-    /* Changed background hue to 220 */
-    --background: 220 12% 12%; /* Slightly blue-tinted dark gray */
+    /* Page Background: Keep as is */
+    --background: 220 10% 12%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 15% 18%; /* Dark card */
+    --card: 222.2 15% 18%;
     --card-foreground: 210 40% 98%;
 
     --popover: 222.2 15% 18%;
     --popover-foreground: 210 40% 98%;
 
-    /* Primary: Lighter Blue for dark mode */
-    --primary: 217.2 91.2% 59.8%; /* Lighter Blue */
-    --primary-foreground: 222.2 47.4% 11.2%; /* Dark Blue/Black */
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
 
-    /* Secondary: Darker Gray */
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    /* Secondary (Header): Make darker */
+    --secondary: 220 12% 0%; /* Even darker, almost black */
+    /* Secondary Foreground (Header Text): Keep white */
+    --secondary-foreground: 0 0% 100%;
 
+    /* Muted remains dark gray */
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 63% 50%; /* Adjusted red for dark */
+    --destructive: 0 63% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Success color for dark mode */
     --success: 145 55% 59%;
     --success-foreground: 222.2 47.4% 11.2%;
 
-    /* Error color for dark mode */
     --error: 0 63% 50%;
     --error-foreground: 0 0% 100%;
 
-    --border: 217.2 20% 25.5%; /* Adjusted border */
+    --border: 217.2 20% 25.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 217.2 91.2% 59.8%; /* Reverted ring to match primary blue */
+    --ring: 217.2 91.2% 59.8%;
+
+    /* Header Border Color: Adjust to be slightly darker than new secondary */
+    --header-border: 220 12% 3%; /* Slightly lighter than the almost black header */
 
     /* Sidebar colors remain unchanged unless specified */
     --sidebar-background: 240 5.9% 10%;
@@ -120,6 +123,8 @@
     /* Use the updated background variable */
     @apply bg-background text-foreground min-h-screen;
     font-family: 'Geist Sans', sans-serif;
+    /* Add overscroll-behavior-y to prevent pull-to-refresh */
+    overscroll-behavior-y: contain;
   }
 
   /* Add styles for react-markdown */
@@ -133,8 +138,8 @@
     @apply font-normal bg-muted text-foreground px-1 py-0.5 rounded-sm text-sm; /* Keep code blocks slightly smaller */
   }
   .prose pre {
-    /* Changed padding from p-2 to p-0, kept border */
-    @apply bg-gray-100 dark:bg-gray-800 p-0 rounded-md overflow-x-auto text-sm border border-[hsl(var(--border))];
+    /* Removed overflow-x-auto */
+    @apply bg-gray-100 dark:bg-gray-800 p-0 rounded-md text-sm border border-[hsl(var(--border))];
   }
   .prose pre code {
     /* Padding is now handled by the syntax highlighter's customStyle */
@@ -163,9 +168,10 @@
       @apply border-border;
   }
   /* Ensure consistent font size within prose */
-  /* Changed text-sm to text-base */
+  /* Apply custom font size slightly larger than text-sm */
   .prose p, .prose li, .prose blockquote, .prose ul, .prose ol {
-      @apply text-base; /* Increased font size */
+      /* @apply text-sm; */ /* Removed Tailwind class */
+      font-size: 0.95rem; /* Apply custom size */
   }
 }
 
@@ -200,8 +206,9 @@
      @apply flex items-start space-x-3 p-4 border rounded-lg transition-colors duration-200 cursor-pointer;
    }
    .quiz-option-label {
-      /* Ensure label also uses text-base if needed, or let prose handle it */
+      /* Ensure label also uses the custom font size if needed, or let prose handle it */
       @apply font-normal flex-1 text-left cursor-pointer pt-0.5; /* Adjust alignment slightly */
+      /* font-size: 0.95rem; */ /* Let prose handle this */
    }
    .quiz-option-default {
       @apply border-input bg-card hover:bg-accent/50 dark:hover:bg-accent/20;
@@ -267,8 +274,9 @@
        @apply font-semibold flex items-center gap-2 mb-1;
    }
    .feedback-alert-description {
-       /* Changed prose-sm to prose-base */
-       @apply prose prose-base dark:prose-invert max-w-none; /* Increased font size */
+       /* Apply custom font size here as well */
+       @apply prose dark:prose-invert max-w-none; /* Removed prose-sm */
+       font-size: 0.95rem; /* Apply custom size */
    }
 
 }

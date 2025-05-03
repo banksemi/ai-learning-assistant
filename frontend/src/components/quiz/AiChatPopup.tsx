@@ -103,8 +103,8 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({ isOpen, onOpenChange, questio
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
-        // Increase max-width further to xl
-        className="sm:max-w-xl p-0 flex flex-col max-h-[70vh] h-[70vh]"
+        // Changed sm:max-w-xl to sm:max-w-2xl
+        className="sm:max-w-2xl p-0 flex flex-col max-h-[70vh] h-[70vh]"
         onPointerDownOutside={(e) => {
             e.preventDefault();
         }}

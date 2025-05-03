@@ -16,7 +16,8 @@ const NumberOfQuestionsSelector: React.FC<NumberOfQuestionsSelectorProps> = ({
     language,
     maxQuestions
 }) => {
-  const baseOptions = [5, 10, 20, 30, 65];
+  // Add 1 to the base options
+  const baseOptions = [1, 5, 10, 20, 30, 65];
 
   // Filter base options based on maxQuestions
   const availableOptions = baseOptions.filter(option => option <= maxQuestions);
@@ -33,7 +34,6 @@ const NumberOfQuestionsSelector: React.FC<NumberOfQuestionsSelectorProps> = ({
 
   if (showAllOption) {
     // Add "All" option, ensuring its value doesn't duplicate an existing option number
-    // (though unlikely with the baseOptions provided)
     if (!availableOptions.includes(allOptionValue)) {
         finalOptions.push({
             value: allOptionValue,
@@ -48,9 +48,9 @@ const NumberOfQuestionsSelector: React.FC<NumberOfQuestionsSelectorProps> = ({
     }
   }
 
-  // Handle edge case where maxQuestions is less than the smallest base option (e.g., max is 3)
-  // In this case, only the "All" option should be available.
-  if (availableOptions.length === 0 && showAllOption) {
+  // Handle edge case where maxQuestions is less than the smallest base option (now 1)
+  // If maxQuestions is 0, no options should be shown (except the disabled one)
+  if (availableOptions.length === 0 && showAllOption && maxQuestions > 0) {
       finalOptions.length = 0; // Clear any potentially added base options
       finalOptions.push({
           value: allOptionValue,
@@ -72,6 +72,7 @@ const NumberOfQuestionsSelector: React.FC<NumberOfQuestionsSelectorProps> = ({
         {labelText}
       </Label>
       <Select
+        // Ensure the value is correctly set even if it's 1
         value={String(numQuestions)} // Value must be a string for Select
         onValueChange={handleValueChange}
         required

@@ -65,7 +65,16 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+        // Custom very light background colors for result cards - Adjusted lightness AGAIN
+        'card-marked-bg': {
+          DEFAULT: 'hsl(210, 100%, 99.5%)', // Extremely light blue (almost white)
+          dark: 'hsl(210, 10%, 7%)'        // Extremely dark blue (almost black, low saturation)
+        },
+        'card-incorrect-bg': {
+          DEFAULT: 'hsl(0, 100%, 99.5%)', // Extremely light red (almost white)
+          dark: 'hsl(0, 10%, 7%)'         // Extremely dark red (almost black, low saturation)
+        },
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

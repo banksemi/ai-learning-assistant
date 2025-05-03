@@ -26,7 +26,8 @@ const Index = () => {
   const maxQuestions = selectedBank?.questions ?? 0;
 
   const getValidNumOptions = useCallback((max: number): number[] => {
-      const base = [5, 10, 20, 30, 65];
+      // Add 1 to the base options
+      const base = [1, 5, 10, 20, 30, 65];
       const filtered = base.filter(opt => opt <= max);
       if (max > 0) {
           if (!filtered.includes(max)) {
@@ -95,6 +96,7 @@ const Index = () => {
       const validOptions = getValidNumOptions(currentMax);
 
       // If the current numQuestions is not among the valid options for the new bank, reset it.
+      // Prioritize 10 if available, otherwise the first option (which could be 1).
       if (validOptions.length > 0 && !validOptions.includes(numQuestions)) {
           setNumQuestions(validOptions.includes(10) ? 10 : validOptions[0]);
       } else if (validOptions.length === 0 && currentMax > 0) {
