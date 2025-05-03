@@ -103,8 +103,12 @@ export default {
           to: { opacity: '1', transform: 'translateY(0)' },
         },
         'fade-in': {
-          from: { opacity: '0' },
-          to: { opacity: '1' },
+          '0%': { opacity: '0' }, // Start fully transparent
+          '100%': { opacity: '1' }, // End fully opaque
+        },
+        'fade-out': { // Added fade-out animation
+           '0%': { opacity: '1' },
+           '100%': { opacity: '0' },
         },
         'slide-up': {
           from: { transform: 'translateY(20px)', opacity: '0' },
@@ -115,7 +119,8 @@ export default {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
         'count-up': 'count-up 0.5s ease-out forwards', // Added for score animation
-        'fade-in': 'fade-in 0.5s ease-out forwards',
+        'fade-in': 'fade-in 0.3s ease-out forwards', // Adjusted duration
+        'fade-out': 'fade-out 0.3s ease-out forwards', // Added fade-out animation
         'slide-up': 'slide-up 0.5s ease-out forwards',
 			}
 		}
