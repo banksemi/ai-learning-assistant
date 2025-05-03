@@ -18,6 +18,7 @@ public interface QuestionBankService {
             Long questionBankId,
             Long count
     )  throws NotFoundQuestionBank;
+    List<Question> getAllQuestions(Long questionBankId);
 
     Question getQuestion(Long questionId);
 }

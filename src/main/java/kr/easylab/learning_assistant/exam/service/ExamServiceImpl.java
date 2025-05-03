@@ -32,11 +32,13 @@ public class ExamServiceImpl implements ExamService {
                 request.getQuestion_bank_id(),
                 request.getQuestions()
         );
+
         List<ExamQuestion> examQuestions = new ArrayList<>();
         Exam exam = Exam.builder()
                 .language(request.getLanguage())
                 .examQuestions(examQuestions)
                 .randomSeed(new Random().nextLong())
+                .questionBank(questions.getFirst().getQuestionBank())
                 .build();
 
         for (long i = 0; i < questions.size(); i++) {

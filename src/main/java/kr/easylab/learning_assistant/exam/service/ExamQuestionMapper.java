@@ -73,4 +73,37 @@ public class ExamQuestionMapper {
         }
         return examQuestionResponse;
     }
+
+    public String mapToString(ExamQuestion examQuestion) {
+        ExamQuestionResponse examQuestionResponse = mapToDto(examQuestion);
+        String temp = "";
+        if (examQuestion.getCorrect())
+            temp = "(정답)";
+        else
+            temp = "(틀림)";
+
+        String promptQuestions = "## 문제 " + (examQuestion.getNo() + 1) + " "  + temp + "\n" + examQuestionResponse.getTitle() + "\n";
+        promptQuestions += "### 보기\n" + formatOptions(examQuestionResponse.getOptions()) + "\n";
+        promptQuestions += "### 실제 정답\n" + formatAnswers(examQuestionResponse.getActualAnswers()) + "\n";
+        promptQuestions += "### 선택한 답\n" + formatAnswers(examQuestionResponse.getUserAnswers()) + "\n";
+        promptQuestions += "### 마킹 여부\n" + examQuestionResponse.getMarker().toString() + "\n";
+        promptQuestions += "### 해설\n" + examQuestionResponse.getExplanation() + "\n";
+        promptQuestions += "\n";
+        return promptQuestions;
+    }
+
+    private String formatOptions(List<Option> options) {
+        StringBuilder sb = new StringBuilder();
+        for (Option option : options) {
+            sb.append("- ").append(option.getKey()).append(": ").append(option.getValue()).append("\n");
+        }
+        return sb.toString();
+    }
+
+    private String formatAnswers(List<String> answers) {
+        if (answers == null || answers.isEmpty()) {
+            return "답 없음";
+        }
+        return String.join(", ", answers);
+    }
 }

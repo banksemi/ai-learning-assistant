@@ -93,6 +93,11 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     }
 
     @Override
+    public List<Question> getAllQuestions(Long questionBankId) {
+        return questionBankRepository.findAllQuestions(questionBankId);
+    }
+
+    @Override
     public Question getQuestion(Long questionId) {
         return null;
     }

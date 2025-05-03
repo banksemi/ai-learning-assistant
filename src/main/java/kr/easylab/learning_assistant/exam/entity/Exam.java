@@ -2,6 +2,7 @@ package kr.easylab.learning_assistant.exam.entity;
 
 import jakarta.persistence.*;
 import kr.easylab.learning_assistant.chatbot.entity.Chatbot;
+import kr.easylab.learning_assistant.question.entity.QuestionBank;
 import lombok.*;
 import org.hibernate.annotations.BatchSize;
 
@@ -24,6 +25,10 @@ public class Exam {
 
     @Column(nullable = false)
     private Long randomSeed;
+
+    @ManyToOne
+    @JoinColumn(name = "question_bank_id", nullable = false)
+    private QuestionBank questionBank;
 
     @OneToMany(mappedBy = "exam", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("no ASC")

@@ -8,6 +8,9 @@ import kr.easylab.learning_assistant.exam.exception.NotFoundExam;
 import kr.easylab.learning_assistant.exam.repository.ExamRepository;
 import kr.easylab.learning_assistant.llm.dto.LLMMessage;
 import kr.easylab.learning_assistant.llm.service.LLMService;
+import kr.easylab.learning_assistant.question.entity.Answer;
+import kr.easylab.learning_assistant.question.entity.Question;
+import kr.easylab.learning_assistant.question.service.QuestionBankService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,51 +22,55 @@ import java.util.stream.Collectors;
 public class ExamReportService {
     private final ExamQuestionMapper examQuestionMapper;
     private final ExamRepository examRepository;
+    private final QuestionBankService questionBankService;
     private final LLMService llmService;
 
 
-    private String formatOptions(List<Option> options) {
-        StringBuilder sb = new StringBuilder();
-        for (Option option : options) {
-            sb.append("- ").append(option.getKey()).append(": ").append(option.getValue()).append("\n");
-        }
-        return sb.toString();
-    }
-
-    private String formatAnswers(List<String> answers) {
-        if (answers == null || answers.isEmpty()) {
-            return "답 없음";
-        }
-        return String.join(", ", answers);
-    }
-
     private String generateSummary(Exam exam) {
-        String promptQuestions = "";
+        StringBuilder userMessage = new StringBuilder("# 사용자가 푼 문제 목록\n");
+        StringBuilder knowledge = new StringBuilder("# 지식 베이스 (문제 은행)\n");
 
-        for (ExamQuestionResponse examQuestion : exam.getExamQuestions().stream().map(examQuestionMapper::mapToDto).toList()) {
-            promptQuestions += "## " + examQuestion.getTitle() + "\n";
-            promptQuestions += "### 보기\n" + formatOptions(examQuestion.getOptions()) + "\n";
-            promptQuestions += "### 정답\n" + formatAnswers(examQuestion.getActualAnswers()) + "\n";
-            promptQuestions += "### 선택한 답\n" + formatAnswers(examQuestion.getUserAnswers()) + "\n";
-            promptQuestions += "### 마킹 여부\n" + examQuestion.getMarker().toString() + "\n";
-            promptQuestions += "### 해설\n" + examQuestion.getExplanation() + "\n";
-            promptQuestions += "\n";
+        for (Question question: questionBankService.getAllQuestions(exam.getQuestionBank().getId())) {
+            knowledge.append("## ").append(question.getTitle()).append("\n");
+            knowledge.append("### 정답\n");
+            for (Answer answer: question.getAnswer()) {
+                if (answer.getCorrect()) {
+                    knowledge.append("- ").append(answer.getText()).append("\n");
+                }
+            }
+            knowledge.append(question.getExplanation()).append("\n");
+
         }
+        for (ExamQuestion examQuestion : exam.getExamQuestions()) {
+            userMessage.append(examQuestionMapper.mapToString(examQuestion)).append("\n");
+        }
+
         String prompt = """
         당신은 전문 티칭 어시스턴트입니다. 사용자가 입력한 시험 문제지를 기반으로 학습 피드백을 제시하세요.
         
-        어떤 문제는 사용자가 헷갈려서 마킹했을수도 있으며 오답을 체크했을 수도 있습니다.
-        이러한 문제들을 종합하여 사용자가 어려워하는 부분을 식별하고 공부 전략을 제시해주어야합니다.
-        특히 자주 헷갈리는 개념이나 요소를 비교하거나 요약 및 정리하여 제시해주세요.
+        # 보고서 전략
+        - 어떤 문제는 사용자가 헷갈려서 마킹했을수도 있으며 오답을 체크했을 수도 있습니다.
+        - 이러한 문제들을 종합하여 사용자가 어려워하는 부분을 식별할 수 있습니다.
+        - 지식 베이스를 적극 활용하세요. 이는 보고서의 오류를 줄이고 시험에 자주 등장하는 개념이나 질문을 파악할 수 있습니다.
+        - 사용자가 자주 헷갈리는 개념이나 요소를 비교하거나 요약 및 정리하여 제시할 수  있습니다.
+        - 사용자가 의욕을 가질 수 있도록 적절한 격려의 메세지를 포함해주세요.
         
-        사용자가 의욕을 가질 수 있도록 적절한 격려의 메세지를 포함해주세요.
-        
-        ## 주요 지침
+        # 주요 지침
         - 첫 문장은 격려의 메세지로 시작합니다. (단 "격려의 메세지" 헤더를 그대로 노출하지 마세요)
+        - 전체 문항 수나 틀린 문항 수는 이미 별도의 보고서로 제시되어 다시 언급할 필요가 없습니다.
         - 3레벨 헤더 (###)로 섹션을 나눠서 제시해주세요. (1레벨, 2레벨 헤더는 사용하지 않습니다)
-        """;
+        - 이 보고서는 시험 마지막에 제공되므로 'A', 'B' 와 같은 보기 지칭은 도움이 되지 않습니다.
+        - 눈에 잘 들어오도록 장문의 글보다는 핵심 키워드 위주로 정리해주세요.
+        
+        """ + knowledge;
 
-        return llmService.generate(prompt, List.of(LLMMessage.builder().role(LLMMessage.Role.USER).text(promptQuestions).build()));
+        return llmService.generate(
+                prompt,
+                List.of(LLMMessage.builder()
+                        .role(LLMMessage.Role.USER)
+                        .text(userMessage.toString())
+                        .build())
+        );
     }
 
     public ExamResultResponse getResult(Long examId) {
