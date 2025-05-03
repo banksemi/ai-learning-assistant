@@ -9,8 +9,6 @@ import kr.easylab.learning_assistant.exam.repository.ExamRepository;
 import kr.easylab.learning_assistant.question.entity.Answer;
 import kr.easylab.learning_assistant.question.entity.Question;
 import kr.easylab.learning_assistant.question.service.QuestionBankService;
-import kr.easylab.learning_assistant.translation.dto.Language;
-import kr.easylab.learning_assistant.translation.service.TranslationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +23,7 @@ import java.util.stream.IntStream;
 public class ExamServiceImpl implements ExamService {
     private final QuestionBankService questionBankService;
     private final ExamRepository examRepository;
-    private final TranslationService translationService;
+    private final ExamQuestionTranslationService examQuestionTranslationService;
 
     @Override
     public Long createExam(ExamCreationRequest request) {
@@ -69,6 +67,19 @@ public class ExamServiceImpl implements ExamService {
         return examRepository.getQuestionCount(examId);
     }
 
+    private void prepareNextTranslation(ExamQuestion examQuestion) {
+
+        examQuestionTranslationService.translateExplanation(
+                examQuestion.getExam().getId(),
+                examQuestion.getNo()
+        );
+
+        examQuestionTranslationService.translateAnswers(
+                examQuestion.getExam().getId(),
+                examQuestion.getNo() + 1
+        );
+    }
+
     private ExamQuestionResponse mapToDto(ExamQuestion examQuestion) {
         // 복사본을 사용하여 원본 엔티티 순서에 영향이 가지 않도록 함.
         List<Answer> answerList = new ArrayList<>(examQuestion.getQuestion().getAnswer());
@@ -82,6 +93,11 @@ public class ExamServiceImpl implements ExamService {
 
         Collections.shuffle(answerList, random);
 
+        ExamTranslationResponse translation = examQuestionTranslationService.translateAnswers(
+                examQuestion.getExam().getId(),
+                examQuestion.getNo()
+        ).join();
+
         List<String> actualAnswers = new ArrayList<>();
         List<Option> options = IntStream.range(0, answerList.size())
                 .mapToObj(index -> {
@@ -93,14 +109,14 @@ public class ExamServiceImpl implements ExamService {
 
                     return Option.builder()
                             .key(String.valueOf(keyChar))
-                            .value(answer.getText())
+                            .value(translation.getAnswers().get(answer.getId()))
                             .build();
                 })
                 .collect(Collectors.toList());
 
         ExamQuestionResponse examQuestionResponse = ExamQuestionResponse.builder()
                 .questionId(examQuestion.getNo())
-                .title(examQuestion.getQuestion().getTitle())
+                .title(translation.getTitle())
                 .answerCount(examQuestion.getQuestion().getAnswer().stream().filter(
                         Answer::getCorrect
                 ).count())
@@ -110,28 +126,11 @@ public class ExamServiceImpl implements ExamService {
 
         if (!examQuestion.getUserAnswers().isEmpty()) {
             examQuestionResponse.setUserAnswers(examQuestion.getUserAnswers());
-            examQuestionResponse.setExplanation(examQuestion.getQuestion().getExplanation());
+            examQuestionResponse.setExplanation(examQuestionTranslationService.translateExplanation(
+                    examQuestion.getExam().getId(),
+                    examQuestion.getNo()
+            ).join());
             examQuestionResponse.setActualAnswers(actualAnswers);
-        }
-
-        // Translate
-        if (examQuestion.getExam().getLanguage() != null) {
-            List<String> data = new ArrayList<>();
-            data.add(examQuestionResponse.getTitle());
-            data.addAll(examQuestionResponse.getOptions().stream().map(Option::getValue).toList());
-
-            List<String> translate = translationService.translate(data, Language.KOREAN);
-            examQuestionResponse.setTitle(translate.get(0));
-            for (int i = 1; i < translate.size(); i++) {
-                examQuestionResponse.getOptions().get(i - 1).setValue(translate.get(i));
-            }
-
-            if (examQuestionResponse.getExplanation() != null) {
-                examQuestionResponse.setExplanation(translationService.translate(
-                        examQuestionResponse.getExplanation(),
-                        Language.KOREAN
-                ));
-            }
         }
         return examQuestionResponse;
     }
@@ -141,6 +140,7 @@ public class ExamServiceImpl implements ExamService {
         if (examQuestion == null) {
             throw new NotFoundExamQuestion();
         }
+        prepareNextTranslation(examQuestion);
         return mapToDto(examQuestion);
     }
 

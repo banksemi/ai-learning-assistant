@@ -22,6 +22,7 @@ public class LLMTranslationService implements TranslationService {
     private final String prompt = """
         당신은 입력된 데이터를 받아 정해진 언어로 번역을 해주는 AI입니다.
         번역시 서비스 명칭인 경우 원문을 유지해주거나 원문 명칭과 번역된 서비스 명칭을 함께 표기해주세요.
+        코드 블럭은 원본 언어를 유지해주세요.
         
         입력한 배열 내의 항목 수와 출력되는 배열 내의 항목 수가 동일해야합니다.
         입력된 텍스트의 형식을 유지해주세요.
