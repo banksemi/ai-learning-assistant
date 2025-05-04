@@ -14,16 +14,34 @@ import {
     ApiQuestionOption, // Import ApiQuestionOption
 } from '@/types';
 
-// Use environment variable for API base URL, with a fallback for safety
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+// --- Read API URL from global config ---
+// Declare the global config object for TypeScript
+declare global {
+  interface Window {
+    config?: {
+      API_BASE_URL?: string;
+    };
+  }
+}
 
-// Log a warning if the environment variable is not set and fallback is used
-if (!import.meta.env.VITE_API_BASE_URL) {
+// Read from window.config, fallback to Vite env var (for safety during dev), then hardcoded default
+const API_BASE_URL = window.config?.API_BASE_URL;
+
+// Log which URL is being used
+if (window.config?.API_BASE_URL) {
+    console.log("Using API URL from config.js:", API_BASE_URL);
+} else if (import.meta.env.VITE_API_BASE_URL) {
     console.warn(
-        "VITE_API_BASE_URL environment variable is not set. Using default fallback URL:",
+        "Using API URL from Vite environment variable (VITE_API_BASE_URL). config.js might be missing or empty.",
+        API_BASE_URL
+    );
+} else {
+     console.error(
+        "API URL not found in config.js or Vite env vars. Using hardcoded default:",
         API_BASE_URL
     );
 }
+// --- End of API URL reading ---
 
 
 const apiClient = axios.create({

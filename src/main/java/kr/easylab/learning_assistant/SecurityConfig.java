@@ -31,6 +31,10 @@ public class SecurityConfig {
     @Getter
     private String adminPassword;
 
+
+    @Value("${cors_origin}")
+    private String origin;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -72,7 +76,8 @@ public class SecurityConfig {
         // "setAllowedOrigins()" 대신 "setAllowedOriginPatterns()"으로 와일드 카드 사용
         configuration.setAllowedOriginPatterns(List.of(
                 "https://*.webcontainer-api.io",
-                "http://localhost:[*]"
+                "http://localhost:[*]",
+                origin
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
