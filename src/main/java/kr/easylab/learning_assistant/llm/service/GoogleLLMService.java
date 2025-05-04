@@ -106,7 +106,7 @@ public class GoogleLLMService implements LLMService {
                 .bodyToMono(GenerateContentResponse.class);
 
         GenerateContentResponse responseString = stringMono
-                .timeout(Duration.ofSeconds(30))
+                .timeout(Duration.ofSeconds(240))
                 .block();
 
         Content responseContent = responseString.getCandidates().get(0).getContent();
