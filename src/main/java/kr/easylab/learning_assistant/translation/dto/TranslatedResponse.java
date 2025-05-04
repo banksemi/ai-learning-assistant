@@ -6,5 +6,5 @@ import java.util.List;
 
 @Data
 public class TranslatedResponse {
-    private List<String> translatedTexts;
+    private List<String> translated;
 }

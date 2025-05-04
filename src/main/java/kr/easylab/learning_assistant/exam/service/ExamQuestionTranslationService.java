@@ -1,5 +1,6 @@
 package kr.easylab.learning_assistant.exam.service;
 
+import kr.easylab.learning_assistant.exam.dto.ExamTranslationRequest;
 import kr.easylab.learning_assistant.exam.dto.ExamTranslationResponse;
 import kr.easylab.learning_assistant.exam.entity.ExamQuestion;
 import kr.easylab.learning_assistant.exam.repository.ExamRepository;
@@ -50,22 +51,23 @@ public class ExamQuestionTranslationService {
         String title = examQuestion.getQuestion().getTitle();
         List<Answer> answers = examQuestion.getQuestion().getAnswer();
 
-        List<String> items = new ArrayList<>();
-        items.add(title);
-        items.addAll(answers.stream().map(Answer::getText).toList());
+        ExamTranslationRequest request = ExamTranslationRequest.builder()
+                .title(title)
+                .answers(answers.stream().map(Answer::getText).toList())
+                .build();
 
-        List<String> translated = translationService.translate(items, Language.KOREAN);
-        String translatedTitle = translated.getFirst();
+
+        ExamTranslationRequest translated = translationService.translate(request, Language.KOREAN, ExamTranslationRequest.class);
 
         Map<Long, String> translatedAnswers = IntStream.range(0, answers.size())
                 .mapToObj(index -> Map.entry(
                         answers.get(index).getId(),
-                        translated.get(index+1)
+                        translated.getAnswers().get(index)
                 ))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         return CompletableFuture.completedFuture(ExamTranslationResponse.builder()
-                .title(translatedTitle)
+                .title(translated.getTitle())
                 .answers(translatedAnswers)
                 .build());
     }
