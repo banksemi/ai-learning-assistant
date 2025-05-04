@@ -279,8 +279,8 @@ const QuizPage = () => {
         isLoading={false} // Header itself is never in a loading state
       />
 
-      {/* Centered container for the content below the header: Added flex-grow */}
-      <div className="flex justify-center px-4 md:px-8 pb-4 md:pb-8 flex-grow">
+      {/* Centered container for the content below the header: Added flex-grow and mt-4 */}
+      <div className="flex justify-center px-4 md:px-8 pb-4 md:pb-8 flex-grow mt-4"> {/* Added mt-4 */}
         <div className="w-full max-w-3xl">
           {/* Conditional Rendering for Content */}
           {isLoadingNextQuestion ? (

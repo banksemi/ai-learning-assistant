@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import ReactMarkdown from 'react-markdown'; // Import ReactMarkdown
 import remarkGfm from 'remark-gfm'; // Import remarkGfm
 import CodeBlock from '@/components/CodeBlock'; // Import CodeBlock
+import { useIsMobile } from '@/hooks/use-mobile'; // Import useIsMobile hook
 
 interface AiChatPopupProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({ isOpen, onOpenChange, questio
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isMobile = useIsMobile(); // Use the hook
 
   useEffect(() => {
     const viewport = scrollAreaRef.current?.querySelector<HTMLDivElement>('[data-radix-scroll-area-viewport]');
@@ -64,15 +66,19 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({ isOpen, onOpenChange, questio
        toast.error(language === 'ko' ? '메시지 전송 실패' : 'Failed to send message');
     } finally {
       setIsLoading(false);
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-            if (inputRef.current && isOpen) {
-                 inputRef.current.focus();
-            }
-        }, 0);
-      });
+      // Conditionally focus based on isMobile
+      if (!isMobile) {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+              if (inputRef.current && isOpen) {
+                   inputRef.current.focus();
+              }
+          }, 0);
+        });
+      }
     }
-  }, [inputValue, isLoading, question, sendChatMessage, language, isOpen]);
+  // Added isMobile to dependency array
+  }, [inputValue, isLoading, question, sendChatMessage, language, isOpen, isMobile]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
@@ -93,11 +99,15 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({ isOpen, onOpenChange, questio
       }]);
       setInputValue('');
       setIsLoading(false);
-      setTimeout(() => {
-          inputRef.current?.focus();
-      }, 100);
+      // Conditionally focus on open based on isMobile
+      if (!isMobile) {
+        setTimeout(() => {
+            inputRef.current?.focus();
+        }, 100);
+      }
     }
-  }, [isOpen, language]);
+  // Added isMobile to dependency array
+  }, [isOpen, language, isMobile]);
 
 
   return (
@@ -125,8 +135,8 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({ isOpen, onOpenChange, questio
                 {message.sender === 'ai' && (
                   <>
                     <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                    {/* Apply prose class for markdown, ensure text size is controlled via CSS */}
-                    <div className="rounded-lg p-3 max-w-[85%] bg-gray-200 dark:bg-gray-700 prose prose-sm dark:prose-invert">
+                    {/* Increased max-w, removed prose-sm, added text-sm */}
+                    <div className="rounded-lg p-3 max-w-[95%] bg-gray-200 dark:bg-gray-700 prose dark:prose-invert text-sm">
                       <ReactMarkdown
                         children={message.text}
                         remarkPlugins={[remarkGfm]}

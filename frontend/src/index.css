@@ -20,7 +20,7 @@
     --primary-foreground: 210 40% 98%;
 
     /* Secondary (Header): Make darker */
-    --secondary: 220 18% 50%; /* Darker blue-gray */
+    --secondary: 220 18% 35%; /* Darker blue-gray */
     /* Secondary Foreground (Header Text): Keep white */
     --secondary-foreground: 0 0% 100%;
 
@@ -47,7 +47,7 @@
     --radius: 0.5rem;
 
     /* Header Border Color: Adjust to be slightly darker than new secondary */
-    --header-border: 220 18% 45%;
+    --header-border: 220 18% 30%; /* Darker border */
 
     /* Sidebar colors remain unchanged unless specified */
     --sidebar-background: 0 0% 98%;
@@ -75,7 +75,7 @@
     --primary-foreground: 222.2 47.4% 11.2%;
 
     /* Secondary (Header): Make darker */
-    --secondary: 220 12% 0%; /* Even darker, almost black */
+    --secondary: 220 12% 10%; /* Darker */
     /* Secondary Foreground (Header Text): Keep white */
     --secondary-foreground: 0 0% 100%;
 
@@ -100,7 +100,7 @@
     --ring: 217.2 91.2% 59.8%;
 
     /* Header Border Color: Adjust to be slightly darker than new secondary */
-    --header-border: 220 12% 3%; /* Slightly lighter than the almost black header */
+    --header-border: 220 12% 8%; /* Darker border */
 
     /* Sidebar colors remain unchanged unless specified */
     --sidebar-background: 240 5.9% 10%;

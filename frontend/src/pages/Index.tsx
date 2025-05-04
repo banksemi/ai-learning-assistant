@@ -8,10 +8,20 @@ import NumberOfQuestionsSelector from '@/components/index/NumberOfQuestionsSelec
 import LanguageDropdown from '@/components/index/LanguageDropdown';
 import { getQuestionBanks } from '@/services/api';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, Upload } from 'lucide-react'; // Import Upload icon
+import { AlertCircle, Upload, Download } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import AdminUploadDialog from '@/components/admin/AdminUploadDialog'; // Import the dialog
-import { toast } from "sonner"; // Import toast
+import AdminUploadDialog from '@/components/admin/AdminUploadDialog';
+import { toast } from "sonner";
+
+// Define the interface for the BeforeInstallPromptEvent (use 'any' if type causes issues)
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: string[];
+  readonly userChoice: Promise<{
+    outcome: 'accepted' | 'dismissed';
+    platform: string;
+  }>;
+  prompt(): Promise<void>;
+}
 
 const Index = () => {
   const { startQuiz, language, setLanguage, isLoading: isContextLoading, error: contextError, clearError } = useQuiz();
@@ -20,19 +30,65 @@ const Index = () => {
   const [numQuestions, setNumQuestions] = useState<number>(10);
   const [isLoadingBanks, setIsLoadingBanks] = useState<boolean>(true);
   const [errorLoadingBanks, setErrorLoadingBanks] = useState<string | null>(null);
-  const [isAdminUploadOpen, setIsAdminUploadOpen] = useState<boolean>(false); // State for dialog
+  const [isAdminUploadOpen, setIsAdminUploadOpen] = useState<boolean>(false);
+  // State to store the deferred install prompt event
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
   const selectedBank = availableBanks.find(bank => bank.id === selectedBankId);
   const maxQuestions = selectedBank?.questions ?? 0;
 
+  // --- PWA Install Prompt Logic ---
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Stash the event so it can be triggered later.
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      console.log("'beforeinstallprompt' event was fired.");
+      // Optionally, update UI to show the install button
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // Listener for when the app is installed
+    const handleAppInstalled = () => {
+        console.log('PWA was installed');
+        // Hide the install button or update UI
+        setDeferredPrompt(null);
+    };
+
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      // More specific message if prompt is unavailable
+      toast.info(language === 'ko' ? "앱 설치 프롬프트를 지금 사용할 수 없습니다. (이미 설치되었거나 지원되지 않는 브라우저일 수 있습니다.)" : "App install prompt not available right now. (May be already installed or unsupported browser.)");
+      console.log("Deferred prompt not available.");
+      return;
+    }
+    // Show the install prompt
+    deferredPrompt.prompt();
+    // Wait for the user to respond to the prompt
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to the install prompt: ${outcome}`);
+    // We've used the prompt, and can't use it again, discard it
+    setDeferredPrompt(null);
+  };
+  // --- End PWA Install Prompt Logic ---
+
+
   const getValidNumOptions = useCallback((max: number): number[] => {
-      // Add 1 to the base options
       const base = [1, 5, 10, 20, 30, 65];
       const filtered = base.filter(opt => opt <= max);
-      if (max > 0) {
-          if (!filtered.includes(max)) {
-              filtered.push(max);
-          }
+      if (max > 0 && !filtered.includes(max)) {
+          filtered.push(max);
       }
       if (filtered.length === 0 && max > 0) {
           return [max];
@@ -55,12 +111,8 @@ const Index = () => {
       setAvailableBanks(frontendBanks);
       if (frontendBanks.length > 0) {
         const firstBank = frontendBanks[0];
-        // Don't auto-select first bank anymore
-        // setSelectedBankId(firstBank.id);
         const firstBankMax = firstBank.questions;
         const validOptions = getValidNumOptions(firstBankMax);
-        // Keep default numQuestions logic, but it might be irrelevant if no bank is pre-selected
-        // Use a local variable for initial numQuestions calculation to avoid dependency issue
         let initialNumQuestions = 10;
         if (validOptions.length > 0 && !validOptions.includes(initialNumQuestions)) {
             initialNumQuestions = validOptions.includes(10) ? 10 : validOptions[0];
@@ -69,7 +121,6 @@ const Index = () => {
         } else if (firstBankMax === 0) {
             initialNumQuestions = 0;
         }
-        // Set numQuestions state *after* fetching banks
         setNumQuestions(initialNumQuestions);
       } else {
           setSelectedBankId(null);
@@ -82,21 +133,16 @@ const Index = () => {
     } finally {
       setIsLoadingBanks(false);
     }
-  // REMOVED numQuestions from dependency array to fix infinite loop
   }, [clearError, getValidNumOptions]);
 
   useEffect(() => {
     fetchBanks();
-  }, [fetchBanks]); // fetchBanks reference is now stable
+  }, [fetchBanks]);
 
-  // Effect to adjust numQuestions when selectedBankId changes (This one is correct)
   useEffect(() => {
     if (selectedBank) {
       const currentMax = selectedBank.questions;
       const validOptions = getValidNumOptions(currentMax);
-
-      // If the current numQuestions is not among the valid options for the new bank, reset it.
-      // Prioritize 10 if available, otherwise the first option (which could be 1).
       if (validOptions.length > 0 && !validOptions.includes(numQuestions)) {
           setNumQuestions(validOptions.includes(10) ? 10 : validOptions[0]);
       } else if (validOptions.length === 0 && currentMax > 0) {
@@ -105,13 +151,9 @@ const Index = () => {
           setNumQuestions(0);
       }
     } else {
-        // If no bank is selected, reset numQuestions based on available options (or 10)
-        // This handles the case where the user deselects a bank or initial load.
-        const defaultOptions = getValidNumOptions(0); // Get options assuming max 0 initially
-        setNumQuestions(10); // Reset to default 10 or another suitable default
+        setNumQuestions(10);
     }
-  // Keep numQuestions out of dependencies here as well. Bank change drives this effect.
-  }, [selectedBankId, availableBanks, getValidNumOptions, selectedBank]);
+  }, [selectedBankId, availableBanks, getValidNumOptions, selectedBank, numQuestions]);
 
 
   const handleStartQuiz = async (e: React.FormEvent) => {
@@ -139,15 +181,30 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background relative">
-       {/* Admin Upload Button - Top Right */}
-       <Button
-           variant="link"
-           className="absolute top-4 right-4 text-muted-foreground hover:text-primary hover:no-underline px-2 py-1 h-auto text-xs"
-           onClick={() => setIsAdminUploadOpen(true)}
-       >
-           <Upload className="mr-1 h-3 w-3" />
-           문제 업로드
-       </Button>
+       <div className="absolute top-4 right-4 flex items-center space-x-2">
+           {/* Install App Button - Conditionally disable and updated title */}
+           <Button
+               variant="link"
+               className="text-muted-foreground hover:text-primary hover:no-underline px-2 py-1 h-auto text-xs"
+               onClick={handleInstallClick}
+               // Disable the button if the prompt is not available
+               disabled={!deferredPrompt}
+               // Updated title attribute for better explanation
+               title={!deferredPrompt ? (language === 'ko' ? '앱 설치 프롬프트를 사용할 수 없습니다 (지원되지 않는 브라우저 또는 이미 설치됨). iPad/iPhone에서는 공유 > 홈 화면에 추가를 사용하세요.' : 'App install prompt not available (unsupported browser or already installed). On iPad/iPhone, use Share > Add to Home Screen.') : (language === 'ko' ? '앱 설치' : 'Install App')}
+           >
+               <Download className="mr-1 h-3 w-3" />
+               앱 설치
+           </Button>
+
+           <Button
+               variant="link"
+               className="text-muted-foreground hover:text-primary hover:no-underline px-2 py-1 h-auto text-xs"
+               onClick={() => setIsAdminUploadOpen(true)}
+           >
+               <Upload className="mr-1 h-3 w-3" />
+               문제 업로드
+           </Button>
+       </div>
 
       <Card className="w-full max-w-lg shadow-md rounded-lg animate-fade-in">
         <CardHeader className="flex flex-row items-center justify-between pt-6 pb-4 px-6 border-b">
@@ -182,9 +239,8 @@ const Index = () => {
               <>
                 <QuestionBankSelector
                   banks={availableBanks}
-                  // Handle null selectedBankId for the Select component
                   selectedBank={selectedBankId !== null ? String(selectedBankId) : ''}
-                  onBankChange={(value) => setSelectedBankId(value ? Number(value) : null)} // Allow unselecting or handle empty string
+                  onBankChange={(value) => setSelectedBankId(value ? Number(value) : null)}
                   language={language}
                 />
                 <NumberOfQuestionsSelector
@@ -211,7 +267,6 @@ const Index = () => {
         </form>
       </Card>
 
-       {/* Admin Upload Dialog */}
        <AdminUploadDialog
            isOpen={isAdminUploadOpen}
            onOpenChange={setIsAdminUploadOpen}
