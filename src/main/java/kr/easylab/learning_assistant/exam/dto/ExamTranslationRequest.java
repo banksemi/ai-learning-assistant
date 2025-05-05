@@ -17,4 +17,7 @@ public class ExamTranslationRequest {
 
     @NotNull
     private List<String> answers;
+
+    @NotNull
+    private String explanation;
 }

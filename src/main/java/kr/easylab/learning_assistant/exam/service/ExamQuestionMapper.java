@@ -32,7 +32,7 @@ public class ExamQuestionMapper {
 
         Collections.shuffle(answerList, random);
 
-        ExamTranslationResponse translation = examQuestionTranslationService.translateAnswers(
+        ExamTranslationResponse translation = examQuestionTranslationService.translate(
                 examQuestion.getExam().getId(),
                 examQuestion.getNo()
         ).join();
@@ -65,10 +65,7 @@ public class ExamQuestionMapper {
 
         if (!examQuestion.getUserAnswers().isEmpty()) {
             examQuestionResponse.setUserAnswers(examQuestion.getUserAnswers());
-            examQuestionResponse.setExplanation(examQuestionTranslationService.translateExplanation(
-                    examQuestion.getExam().getId(),
-                    examQuestion.getNo()
-            ).join());
+            examQuestionResponse.setExplanation(translation.getExplanation());
             examQuestionResponse.setActualAnswers(actualAnswers);
         }
         return examQuestionResponse;

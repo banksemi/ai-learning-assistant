@@ -12,4 +12,5 @@ import java.util.Map;
 public class ExamTranslationResponse {
     private String title;
     private Map<Long, String> answers;
+    private String explanation;
 }

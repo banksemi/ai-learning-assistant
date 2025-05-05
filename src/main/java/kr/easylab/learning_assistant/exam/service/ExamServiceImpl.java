@@ -71,13 +71,7 @@ public class ExamServiceImpl implements ExamService {
     }
 
     private void prepareNextTranslation(ExamQuestion examQuestion) {
-
-        examQuestionTranslationService.translateExplanation(
-                examQuestion.getExam().getId(),
-                examQuestion.getNo()
-        );
-
-        examQuestionTranslationService.translateAnswers(
+        examQuestionTranslationService.translate(
                 examQuestion.getExam().getId(),
                 examQuestion.getNo() + 1
         );

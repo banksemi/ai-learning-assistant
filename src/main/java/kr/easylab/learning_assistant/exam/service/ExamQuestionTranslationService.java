@@ -31,19 +31,7 @@ public class ExamQuestionTranslationService {
     private final ExamRepository examRepository;
 
     @Async
-    public CompletableFuture<String> translateExplanation(Long examId, Long no) {
-        ExamQuestion examQuestion = examRepository.findQuestion(examId, no);
-        if (examQuestion == null)
-            return CompletableFuture.completedFuture(null);
-
-        if (examQuestion.getQuestion().getExplanation() == null)
-            return CompletableFuture.completedFuture(null);
-
-        return CompletableFuture.completedFuture(translationService.translate(examQuestion.getQuestion().getExplanation(), Language.KOREAN));
-    }
-
-    @Async
-    public CompletableFuture<ExamTranslationResponse> translateAnswers(Long examId, Long no) {
+    public CompletableFuture<ExamTranslationResponse> translate(Long examId, Long no) {
         ExamQuestion examQuestion = examRepository.findQuestion(examId, no);
         if (examQuestion == null)
             return CompletableFuture.completedFuture(null);
@@ -54,6 +42,7 @@ public class ExamQuestionTranslationService {
         ExamTranslationRequest request = ExamTranslationRequest.builder()
                 .title(title)
                 .answers(answers.stream().map(Answer::getText).toList())
+                .explanation(examQuestion.getQuestion().getExplanation())
                 .build();
 
 
@@ -69,6 +58,7 @@ public class ExamQuestionTranslationService {
         return CompletableFuture.completedFuture(ExamTranslationResponse.builder()
                 .title(translated.getTitle())
                 .answers(translatedAnswers)
+                .explanation(translated.getExplanation())
                 .build());
     }
 }
