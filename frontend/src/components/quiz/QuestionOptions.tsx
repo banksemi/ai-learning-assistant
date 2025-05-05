@@ -53,23 +53,36 @@ const QuestionOptions: React.FC<QuestionOptionsProps> = ({
           ))}
         </RadioGroup>
       ) : (
+        // Multiple choice options
         // Further reduced spacing to space-y-2 md:space-y-1
         <div className="space-y-2 md:space-y-1">
           {options.map((option) => (
             <div
               key={option.id}
-              className={cn('quiz-option p-4', getOptionStyle(option.id))}
-               // Prevent click if disabled
+              className={cn(
+                'quiz-option p-4 select-none', // Keep select-none
+                getOptionStyle(option.id)
+              )}
+              // ADD BACK onClick to the div to handle area clicks
               onClick={() => !isDisabled && onOptionChange(option.id)}
             >
               <Checkbox
-                id={option.id}
+                id={option.id} // Keep id for Label association
                 checked={selectedOptions.includes(option.id)}
-                onCheckedChange={() => onOptionChange(option.id)}
+                // REMOVE onCheckedChange from Checkbox itself
+                // The div's onClick now handles the logic
                 disabled={isDisabled} // Use combined disabled state
                 className="mt-1 border-muted-foreground data-[state=checked]:border-primary data-[state=checked]:bg-primary"
+                // Add pointer-events-none to prevent the checkbox from interfering with the div's onClick
+                style={{ pointerEvents: 'none' }}
               />
-              <Label htmlFor={option.id} className='quiz-option-label'>
+              <Label
+                htmlFor={option.id} // Keep htmlFor for accessibility and label clicks
+                className='quiz-option-label'
+                // Prevent label click from triggering default browser behavior (like focusing the checkbox)
+                // as the div's onClick handles the action.
+                onClick={(e) => e.preventDefault()}
+              >
                 <ReactMarkdown children={option.text} remarkPlugins={[remarkGfm]} className="prose dark:prose-invert max-w-none" />
               </Label>
             </div>

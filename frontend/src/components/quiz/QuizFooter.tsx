@@ -31,17 +31,24 @@ const QuizFooter: React.FC<QuizFooterProps> = ({
     <>
       <Separator />
       <div className="w-full px-4 py-4 md:px-6 md:py-4 flex flex-col-reverse md:flex-row items-center justify-between gap-3 md:gap-4">
-        {/* Ask AI Button */}
-        <Button
-          onClick={onAskAI}
-          variant="ghost"
-          size="sm"
-          className="w-full md:w-auto justify-center md:justify-start text-primary hover:text-primary/80 hover:bg-primary/10"
-          disabled={isSubmitting} // Disable Ask AI during submission
-        >
-          <MessageSquare className="mr-2 h-4 w-4" />
-          {language === 'ko' ? 'AI에게 물어보기' : 'Ask AI'}
-        </Button>
+        {/* Ask AI Button - Conditionally render based on isAnswerSubmitted */}
+        <div className="w-full md:w-auto"> {/* Wrapper to maintain layout */}
+          {isAnswerSubmitted && (
+            <Button
+              onClick={onAskAI}
+              variant="ghost"
+              size="sm"
+              className="w-full md:w-auto justify-center md:justify-start text-primary hover:text-primary/80 hover:bg-primary/10 animate-fade-in" // Added fade-in
+              disabled={isSubmitting} // Disable Ask AI during submission (though unlikely to be visible)
+            >
+              <MessageSquare className="mr-2 h-4 w-4" />
+              {language === 'ko' ? 'AI에게 물어보기' : 'Ask AI'}
+            </Button>
+          )}
+          {/* Placeholder for layout consistency when button is hidden */}
+          {!isAnswerSubmitted && <div className="h-9"></div>}
+        </div>
+
 
         {/* Submit/Next Button */}
         {!isAnswerSubmitted ? (

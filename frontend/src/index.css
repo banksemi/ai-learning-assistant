@@ -134,16 +134,23 @@
   .prose code::before, .prose code::after {
     content: none;
   }
+  /* Base style for ALL code elements within prose (inline) */
   .prose code {
-    @apply font-normal bg-muted text-foreground px-1 py-0.5 rounded-sm text-sm; /* Keep code blocks slightly smaller */
+    /* Added border border-border */
+    @apply font-normal bg-muted text-foreground px-1 py-0.5 rounded-sm text-sm border border-border;
   }
+  /* Styles for the <pre> container of code blocks */
   .prose pre {
     /* Removed overflow-x-auto */
-    @apply bg-gray-100 dark:bg-gray-800 p-0 rounded-md text-sm border border-[hsl(var(--border))];
+    /* Ensure pre has no margin by default */
+    @apply bg-gray-100 dark:bg-gray-800 p-0 m-0 rounded-md text-sm border border-[hsl(var(--border))];
   }
+  /* Styles for <code> elements specifically INSIDE <pre> (code blocks) */
   .prose pre code {
-    /* Padding is now handled by the syntax highlighter's customStyle */
-    @apply bg-transparent font-normal;
+    /* Reset background, padding, margin, border, radius for code inside pre */
+    /* Padding/background is handled by the syntax highlighter's customStyle */
+    /* Removed border-none */
+    @apply bg-transparent p-0 m-0 rounded-none font-normal border-0; /* Explicitly set border-0 */
   }
   .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
       @apply text-foreground;

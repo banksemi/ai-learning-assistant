@@ -135,34 +135,50 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({ isOpen, onOpenChange, questio
                 {message.sender === 'ai' && (
                   <>
                     <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                    {/* Increased max-w, removed prose-sm, added text-sm */}
-                    <div className="rounded-lg p-3 max-w-[95%] bg-gray-200 dark:bg-gray-700 prose dark:prose-invert text-sm">
+                    {/* REMOVED text-sm class, let prose handle font size */}
+                    <div className="rounded-lg p-3 max-w-[95%] bg-gray-200 dark:bg-gray-700 prose dark:prose-invert">
                       <ReactMarkdown
                         children={message.text}
                         remarkPlugins={[remarkGfm]}
                         components={{
+                          // Updated code component logic
                           code({ node, inline, className, children, ...props }) {
                             const match = /language-(\w+)/.exec(className || '');
-                            return !inline ? (
-                              <CodeBlock
-                                language={match ? match[1] : undefined}
-                                value={String(children).replace(/\n$/, '')}
-                                {...props}
-                              />
-                            ) : (
-                              <code className={className} {...props}>
+                            // Handle block code (render using CodeBlock component)
+                            if (!inline && match) {
+                              return (
+                                <CodeBlock
+                                  language={match[1]}
+                                  value={String(children).replace(/\n$/, '')}
+                                  // Do not spread props here for CodeBlock
+                                />
+                              );
+                            }
+                            // Handle inline code (render as simple <code> with specific styles)
+                            // Also handle code blocks without a language specification as inline
+                            return (
+                              <code
+                                className={cn(
+                                  // Apply base inline code styles defined in index.css .prose code
+                                  "font-normal bg-muted text-foreground px-1 py-0.5 rounded-sm text-sm",
+                                  className // Allow additional classes if needed
+                                )}
+                                // Do not spread props here for inline code
+                              >
                                 {children}
                               </code>
                             );
                           },
+                          // Ensure pre tags rendered by markdown also have no margin
+                          pre: ({ node, ...props }) => <pre style={{ margin: 0 }} {...props} />,
                         }}
                       />
                     </div>
                   </>
                 )}
                 {message.sender === 'user' && (
-                  // User message text size should be standard text-sm
-                  <div className="rounded-lg p-3 max-w-[85%] text-sm bg-primary text-primary-foreground">
+                  // REMOVED text-sm class, let default styles handle font size
+                  <div className="rounded-lg p-3 max-w-[85%] bg-primary text-primary-foreground">
                     {message.text}
                   </div>
                 )}
@@ -172,8 +188,8 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({ isOpen, onOpenChange, questio
             {isLoading && (
               <div className="flex items-start gap-2 justify-start">
                 <Bot className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                {/* Loading indicator text size should be standard text-sm */}
-                <div className="rounded-lg p-3 bg-gray-200 dark:bg-gray-700 text-sm flex items-center gap-2">
+                {/* REMOVED text-sm class */}
+                <div className="rounded-lg p-3 bg-gray-200 dark:bg-gray-700 flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                   <span className="italic text-muted-foreground">{language === 'ko' ? '답변 생성 중...' : 'Generating response...'}</span>
                 </div>
