@@ -24,8 +24,6 @@ public class ExamServiceImpl implements ExamService {
     private final ExamRepository examRepository;
     private final ExamQuestionMapper examQuestionMapper;
 
-    private final ExamTranslationPredictiveService examQuestionTranslationService;
-
     @Override
     public Long createExam(ExamCreationRequest request) {
         List<Question> questions = questionBankService.getRandomQuestions(
