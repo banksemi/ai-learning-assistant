@@ -36,8 +36,9 @@ dependencies {
 	implementation 'com.google.guava:guava:32.1.2-jre'
 	implementation 'io.swagger.core.v3:swagger-core-jakarta:2.2.21'
 	implementation 'io.swagger.core.v3:swagger-annotations-jakarta:2.2.21'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
-	compileOnly 'org.projectlombok:lombok'
+    compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.h2database:h2'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'

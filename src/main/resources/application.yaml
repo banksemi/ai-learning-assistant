@@ -33,6 +33,9 @@ llm:
 
 cors_origin: "${CORS_ORIGIN:http://localhost:8100}"
 
+translation:
+  prediction_count: "${TRANSLATION_PREDICTION_COUNT:2}"
+
 admin:
   login:
     password: ${ADMIN_LOGIN_PASSWORD}

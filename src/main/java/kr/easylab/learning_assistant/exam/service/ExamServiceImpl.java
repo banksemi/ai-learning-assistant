@@ -6,16 +6,15 @@ import kr.easylab.learning_assistant.exam.entity.ExamQuestion;
 import kr.easylab.learning_assistant.exam.exception.NotFoundExam;
 import kr.easylab.learning_assistant.exam.exception.NotFoundExamQuestion;
 import kr.easylab.learning_assistant.exam.repository.ExamRepository;
-import kr.easylab.learning_assistant.question.entity.Answer;
+import kr.easylab.learning_assistant.exam.service.translation.ExamTranslationPredictiveService;
 import kr.easylab.learning_assistant.question.entity.Question;
 import kr.easylab.learning_assistant.question.service.QuestionBankService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @Transactional
 @Service
@@ -23,8 +22,9 @@ import java.util.stream.IntStream;
 public class ExamServiceImpl implements ExamService {
     private final QuestionBankService questionBankService;
     private final ExamRepository examRepository;
-    private final ExamQuestionTranslationService examQuestionTranslationService;
     private final ExamQuestionMapper examQuestionMapper;
+
+    private final ExamTranslationPredictiveService examQuestionTranslationService;
 
     @Override
     public Long createExam(ExamCreationRequest request) {
@@ -70,20 +70,12 @@ public class ExamServiceImpl implements ExamService {
         return examRepository.getQuestionCount(examId);
     }
 
-    private void prepareNextTranslation(ExamQuestion examQuestion) {
-        examQuestionTranslationService.translate(
-                examQuestion.getExam().getId(),
-                examQuestion.getNo() + 1
-        );
-    }
-
     @Override
     public ExamQuestionResponse getQuestion(Long examId, Long no) throws NotFoundExamQuestion {
         ExamQuestion examQuestion = examRepository.findQuestion(examId, no);
         if (examQuestion == null) {
             throw new NotFoundExamQuestion();
         }
-        prepareNextTranslation(examQuestion);
         return examQuestionMapper.mapToDto(examQuestion);
     }
 

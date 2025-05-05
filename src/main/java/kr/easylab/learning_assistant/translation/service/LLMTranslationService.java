@@ -29,13 +29,11 @@ public class LLMTranslationService implements TranslationService {
     """;
 
     @Override
-    @Cacheable("translations")
     public String translate(String text, Language language) {
         return translate(List.of(text), language).get(0);
     }
 
     @Override
-    @Cacheable("translations")
     public List<String> translate(List<String> texts, Language language) {
         try {
             String jsonText = objectMapper.writeValueAsString(texts);
@@ -56,7 +54,6 @@ public class LLMTranslationService implements TranslationService {
     }
 
     @Override
-    @Cacheable("translations")
     public <T> T translate(T object, Language language, Class<T> clazz) {
         try {
             String jsonText = objectMapper.writeValueAsString(object);

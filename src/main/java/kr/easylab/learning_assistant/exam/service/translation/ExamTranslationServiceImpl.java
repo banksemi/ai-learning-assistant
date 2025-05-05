@@ -1,4 +1,4 @@
-package kr.easylab.learning_assistant.exam.service;
+package kr.easylab.learning_assistant.exam.service.translation;
 
 import kr.easylab.learning_assistant.exam.dto.ExamTranslationRequest;
 import kr.easylab.learning_assistant.exam.dto.ExamTranslationResponse;
@@ -8,17 +8,13 @@ import kr.easylab.learning_assistant.question.entity.Answer;
 import kr.easylab.learning_assistant.translation.dto.Language;
 import kr.easylab.learning_assistant.translation.service.TranslationService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -26,15 +22,15 @@ import java.util.stream.IntStream;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 @Slf4j
-public class ExamQuestionTranslationService {
+@Qualifier("translation-service-base")
+public class ExamTranslationServiceImpl implements ExamTranslationService {
     private final TranslationService translationService;
     private final ExamRepository examRepository;
 
-    @Async
-    public CompletableFuture<ExamTranslationResponse> translate(Long examId, Long no) {
+    public ExamTranslationResponse translate(Long examId, Long no) {
         ExamQuestion examQuestion = examRepository.findQuestion(examId, no);
         if (examQuestion == null)
-            return CompletableFuture.completedFuture(null);
+            return null;
 
         String title = examQuestion.getQuestion().getTitle();
         List<Answer> answers = examQuestion.getQuestion().getAnswer();
@@ -55,10 +51,10 @@ public class ExamQuestionTranslationService {
                 ))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        return CompletableFuture.completedFuture(ExamTranslationResponse.builder()
+        return ExamTranslationResponse.builder()
                 .title(translated.getTitle())
                 .answers(translatedAnswers)
                 .explanation(translated.getExplanation())
-                .build());
+                .build();
     }
 }
