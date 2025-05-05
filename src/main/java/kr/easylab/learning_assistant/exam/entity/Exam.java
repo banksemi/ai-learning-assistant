@@ -33,8 +33,4 @@ public class Exam {
     @OneToMany(mappedBy = "exam", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("no ASC")
     private List<ExamQuestion> examQuestions;
-
-    @JoinColumn(nullable = true)
-    @OneToOne(cascade = CascadeType.ALL)
-    private Chatbot chatbot;
 }

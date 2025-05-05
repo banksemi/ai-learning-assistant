@@ -1,6 +1,7 @@
 package kr.easylab.learning_assistant.exam.entity;
 
 import jakarta.persistence.*;
+import kr.easylab.learning_assistant.chatbot.entity.Chatbot;
 import kr.easylab.learning_assistant.question.entity.Question;
 import lombok.*;
 
@@ -49,4 +50,9 @@ public class ExamQuestion {
     @Column(name = "answer", nullable = false)
     @Setter
     private List<String> userAnswers;
+
+    @JoinColumn(nullable = true)
+    @OneToOne(cascade = CascadeType.ALL)
+    @Setter
+    private Chatbot chatbot;
 }
