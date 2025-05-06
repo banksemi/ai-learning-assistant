@@ -164,6 +164,12 @@ public class GoogleLLMService implements LLMService {
                 .mapNotNull(ServerSentEvent::data)
                 .concatMap(response -> {
                     Content responseContent = response.getCandidates().get(0).getContent();
+                    List<Part> parts = responseContent.getParts();
+                    // parts가 null로 전달되는 경우도 있음.
+                    if (parts == null) {
+                        // 예시: {"candidates": [{"content": {"role": "model"},"finishReason": "STOP","index": 0}], ...}
+                        return Mono.empty();
+                    }
                     for (Part part : responseContent.getParts()) {
                         if (part.getText() != null) {
                             return Mono.just(part.getText());
