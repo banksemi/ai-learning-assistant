@@ -22,13 +22,10 @@ interface AiMessageRendererProps {
 }
 
 const AiMessageRenderer: React.FC<AiMessageRendererProps> = ({ message, isStreaming, language, speed }) => {
-  // Apply typing effect only if it's an AI message and currently streaming
-  // Pass the dynamic speed to the hook
   const displayText = isStreaming && message.sender === 'ai'
-    ? useTypingEffect(message.text, speed) // Use the speed prop
+    ? useTypingEffect(message.text, speed)
     : message.text;
 
-  // Show loading indicator only if streaming and the text hasn't started typing yet
   const showLoading = isStreaming && message.sender === 'ai' && displayText === '';
 
   return (
@@ -42,11 +39,11 @@ const AiMessageRenderer: React.FC<AiMessageRendererProps> = ({ message, isStream
         </div>
       ) : (
         <ReactMarkdown
-          children={displayText} // Render the (potentially partially typed) text
+          children={displayText}
           remarkPlugins={[remarkGfm]}
           components={{
-            code({ node, inline, className, children, ...props }) {
-              const match = /language-(\w+)/.exec(className || '');
+            code({ node, inline, className: langClassName, children, ...props }) {
+              const match = /language-(\w+)/.exec(langClassName || '');
               if (!inline && match) {
                 return (
                   <CodeBlock
@@ -55,21 +52,30 @@ const AiMessageRenderer: React.FC<AiMessageRendererProps> = ({ message, isStream
                   />
                 );
               }
-              // Apply standard code styling even during typing
               return (
                 <code
                   className={cn(
-                    "font-normal bg-muted text-foreground px-1 py-0.5 rounded-sm text-sm border border-border", // Ensure inline code style matches index.css
-                    className
+                    "font-normal bg-muted text-foreground px-1 py-0.5 rounded-sm text-sm border border-border",
+                    langClassName
                   )}
-                  {...props} // Pass props down
+                  {...props}
                 >
                   {children}
                 </code>
               );
             },
-            pre: ({ node, ...props }) => <pre style={{ margin: 0 }} {...props} />,
-            // Ensure paragraphs render correctly during typing
+            pre: ({ children, node, ...props }) => {
+              // Check if the direct child is our CodeBlock component.
+              if (React.Children.count(children) === 1) {
+                const childElement = React.Children.toArray(children)[0];
+                if (React.isValidElement(childElement) && childElement.type === CodeBlock) {
+                  // If it's CodeBlock, it already renders a <pre>. So just return it.
+                  return <>{childElement}</>;
+                }
+              }
+              // Default behavior for other <pre> tags
+              return <pre {...props}>{children}</pre>;
+            },
             p: ({ node, ...props }) => <p style={{ margin: 0 }} {...props} />,
           }}
         />

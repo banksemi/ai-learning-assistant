@@ -26,7 +26,7 @@ public class ExamChatbotServiceImpl implements ExamChatbotService {
 
     private static final String CHATBOT_PROMPT = """
         사용자가 문제를 잘 학습할 수 있도록 돕는 AI 챗봇 입니다.
-        입력된 정보를 기반으로 사용자가 어려워할 수 있는 개념을 쉽게 설명해주세요. '\\n'을 활용하여 가독성을 향상시키세요.
+        입력된 정보를 기반으로 사용자가 어려워할 수 있는 개념을 쉽게 설명해주세요.
         1레벨 헤더(#)와 2레벨 헤더(##)는 사용하지 마세요.
     """;
 

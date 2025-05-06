@@ -1,6 +1,5 @@
 import React from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import MarkdownRenderer from '@/components/MarkdownRenderer'; // 공통 MarkdownRenderer 사용
 import { cn } from '@/lib/utils';
 import { AlertCircle, CheckCircle } from 'lucide-react';
 import { Language } from '@/types';
@@ -25,7 +24,8 @@ const FeedbackSection: React.FC<FeedbackSectionProps> = ({ showFeedback, isCorre
         <span>{isCorrect ? (language === 'ko' ? '정답입니다!' : 'Correct!') : (language === 'ko' ? '오답입니다' : 'Incorrect')}</span>
       </div>
       <div className="feedback-alert-description">
-        <ReactMarkdown children={explanationText} remarkPlugins={[remarkGfm]} />
+        {/* MarkdownRenderer 사용 */}
+        <MarkdownRenderer content={explanationText} />
       </div>
     </div>
   );

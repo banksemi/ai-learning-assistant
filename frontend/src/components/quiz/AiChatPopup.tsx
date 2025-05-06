@@ -17,7 +17,8 @@ import { toast } from "sonner";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useQuiz } from '@/context/QuizContext';
-import AiMessageRenderer from './AiMessageRenderer'; // Import the new renderer component
+import AiMessageRenderer from './AiMessageRenderer';
+import MarkdownRenderer from '@/components/MarkdownRenderer'; // 공통 MarkdownRenderer 사용
 
 // Add an optional id field for tracking streaming messages
 interface StreamingChatMessage extends FrontendChatMessage {
@@ -180,11 +181,15 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
-        className="sm:max-w-2xl p-0 flex flex-col max-h-[80vh] h-[80vh] md:max-h-[70vh] md:h-[70vh]"
+        className={cn(
+            "sm:max-w-2xl p-0 flex flex-col", // Base styles
+            // Mobile full screen styles
+            isMobile ? "h-screen max-h-screen w-screen max-w-screen top-0 left-0 translate-x-0 translate-y-0 rounded-none border-none"
+                     : "max-h-[80vh] h-[80vh] md:max-h-[70vh] md:h-[70vh]" // Desktop styles
+        )}
         onPointerDownOutside={(e) => {
-            if (isMobile) {
-                e.preventDefault();
-            }
+            // Always prevent default to stop closing on outside click
+            e.preventDefault();
         }}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
@@ -196,8 +201,8 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({
 
         <ScrollArea className="flex-1 px-4 pt-4 pb-0 overflow-y-auto" ref={scrollAreaRef}>
           <div className="space-y-4 pb-4">
-            {messages.map((message) => (
-              <div key={message.id ?? message.text} className={cn(
+            {messages.map((message, index) => (
+              <div key={message.id ?? `msg-${index}`} className={cn(
                 'flex items-start gap-2 w-full',
                 message.sender === 'user' ? 'justify-end' : 'justify-start'
               )}>
@@ -206,20 +211,27 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({
                     <div className="flex-shrink-0 h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
                       <Sparkles className="h-4 w-4 text-primary" />
                     </div>
+                    {/* AI Message: Use AiMessageRenderer */}
                     <div className="rounded-lg p-3 max-w-[90%] bg-gray-200 dark:bg-gray-700 prose dark:prose-invert">
                       <AiMessageRenderer
                         message={message}
                         isStreaming={message.id === currentAiMessageIdRef.current}
                         language={language}
-                        // Pass the dynamic speed to the renderer
                         speed={typingSpeed}
                       />
                     </div>
                   </>
                 )}
                 {message.sender === 'user' && (
+                  // User Message: Use MarkdownRenderer with white text
                   <div className="rounded-lg p-3 max-w-[85%] bg-primary text-primary-foreground">
-                    {message.text}
+                    {/* Use MarkdownRenderer, remove prose-primary-invert, add text-white */}
+                    {/* prose-p:m-0 to remove paragraph margins */}
+                    {/* [&_*]:text-white to force all inner elements to be white */}
+                    <MarkdownRenderer
+                      content={message.text}
+                      className="prose-p:m-0 text-white [&_*]:text-white"
+                    />
                   </div>
                 )}
               </div>

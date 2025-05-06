@@ -1,7 +1,5 @@
 import React from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import CodeBlock from '@/components/CodeBlock';
+import MarkdownRenderer from '@/components/MarkdownRenderer'; // 공통 MarkdownRenderer 사용
 
 interface QuestionContentProps {
   questionText: string;
@@ -9,28 +7,9 @@ interface QuestionContentProps {
 
 const QuestionContent: React.FC<QuestionContentProps> = ({ questionText }) => {
   return (
-    <div className="prose dark:prose-invert mt-1 text-left max-w-none">
-      <ReactMarkdown
-        children={questionText}
-        remarkPlugins={[remarkGfm]}
-        components={{
-          code({ node, inline, className, children, ...props }) {
-            const match = /language-(\w+)/.exec(className || '');
-            return !inline ? (
-              <CodeBlock
-                language={match ? match[1] : undefined}
-                value={String(children).replace(/\n$/, '')}
-                {...props}
-              />
-            ) : (
-              <code className={className} {...props}>
-                {children}
-              </code>
-            );
-          },
-        }}
-      />
-    </div>
+    // MarkdownRenderer를 사용하고, 필요시 추가 스타일을 위해 className을 전달할 수 있습니다.
+    // 여기서는 QuestionContent의 기존 스타일을 유지하기 위해 mt-1과 text-left를 전달합니다.
+    <MarkdownRenderer content={questionText} className="mt-1 text-left" />
   );
 };
 
