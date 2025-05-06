@@ -5,7 +5,7 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#4f46e5", // Example theme color (Indigo) - Adjust if needed
+  "theme_color": "#4A5568", // Updated theme color to match header
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
