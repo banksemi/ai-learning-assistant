@@ -8,9 +8,8 @@ const ghostBarColor = "rgba(49, 130, 246, 0.3)";
 
 const Progress = React.forwardRef<
   React.ElementRef<typeof ProgressPrimitive.Root>,
-  // Changed default animationDelay from 500 to 100
   React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> & { animationDelay?: number }
->(({ className, value, animationDelay = 100, ...props }, ref) => {
+>(({ className, value, animationDelay = 400, ...props }, ref) => {
   const [displayValue, setDisplayValue] = React.useState(value || 0);
   const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const rafRef = React.useRef<number | null>(null); // Ref for requestAnimationFrame handle

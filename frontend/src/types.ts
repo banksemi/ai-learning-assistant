@@ -60,6 +60,11 @@ export interface ApiChatResponse {
     assistant: string; // AI's response
 }
 
+// [GET] /api/1/exams/{exam_id}/questions/{question_id}/chat/preset (NEW)
+export interface ApiPresetChatResponse {
+    messages: string[];
+}
+
 // [GET] /api/1/exams/{exam_id}/result
 interface ApiResultQuestionDetail {
     question_id: number;
@@ -105,6 +110,7 @@ export interface Question {
     type: 'single' | 'multiple'; // Determined by answer_count
     isMarked: boolean; // From API question response or local state
     userSelectedIds?: string[]; // Store user's selection locally after submission for review
+    presetMessages?: string[] | null; // NEW: Store preloaded preset messages
 }
 
 // Settings chosen by the user to start the quiz

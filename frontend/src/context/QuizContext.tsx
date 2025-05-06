@@ -13,7 +13,8 @@ import {
     QuestionOption, // Frontend Option type
     ApiQuestionOption, // API Option type
     ApiResultQuestionDetail, // API Result question detail type
-    QuestionBank as FrontendQuestionBank // Import Frontend QuestionBank type
+    QuestionBank as FrontendQuestionBank, // Import Frontend QuestionBank type
+    ApiPresetChatResponse, // Import NEW type
 } from '@/types';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "sonner"; // Using sonner for notifications
@@ -35,6 +36,7 @@ const mapApiQuestionToFrontend = (apiQuestion: ApiQuestionResponse, lang: Langua
         explanation: '', // Explanation is fetched *after* submission via API
         type: apiQuestion.answer_count > 1 ? 'multiple' : 'single',
         isMarked: apiQuestion.marker,
+        presetMessages: null, // Initialize presetMessages as null
         // We might not need userSelectedIds if results API provides it
     };
 };
@@ -55,6 +57,7 @@ const mapApiResultQuestionToFrontend = (apiDetail: ApiResultQuestionDetail): Que
          type: type,
          isMarked: false, // Marked status is handled separately in the result structure
          userSelectedIds: apiDetail.user_answers, // Store user's selection from result
+         presetMessages: null, // Initialize presetMessages as null for result questions too
      };
  };
 
@@ -88,6 +91,7 @@ interface QuizContextProps {
   clearError: () => void; // Ensure clearError is in the interface
   // AI Chat
   sendChatMessage: (questionId: number, message: string) => Promise<ApiChatResponse | null>; // Added for AI chat
+  // fetchPresetMessages: (questionId: number) => Promise<ApiPresetChatResponse | null>; // REMOVED: No longer needed externally
 }
 
 const QuizContext = createContext<QuizContextProps | undefined>(undefined);
@@ -151,10 +155,12 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (examId !== null && !isQuizFinished && totalQuestions > 0 && currentQuestionIndex < totalQuestions) {
         // Fetch if the question at the current index hasn't been fetched yet
         // Also check if the currentQuestion state is null (e.g., after reset or initial load)
-        if (!questions[currentQuestionIndex] || !currentQuestion) {
+        // Or if the current question doesn't match the one in the array (e.g., after state reset)
+        if (!questions[currentQuestionIndex] || !currentQuestion || currentQuestion.id !== questions[currentQuestionIndex]?.id) {
              fetchQuestion(examId, currentQuestionIndex, language);
-        } else if (questions[currentQuestionIndex] && currentQuestion?.id !== questions[currentQuestionIndex].id) {
-            // If already fetched but not the current one, set it
+        } else if (questions[currentQuestionIndex] && currentQuestion?.id === questions[currentQuestionIndex].id) {
+            // If already fetched and matches, ensure currentQuestion state is up-to-date
+            // This handles cases where preset messages might have been added to the array question object
             setCurrentQuestion(questions[currentQuestionIndex]);
         }
     }
@@ -316,17 +322,19 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     setIsLoading(true);
     clearError(); // Use clearError here
+
     try {
+      // 1. Submit the answer
       const response = await api.submitAnswer(examId, questionId, { user_answers: selectedOptionIds });
 
-      // Determine correctness based on API response
+      // 2. Determine correctness based on API response
       const correctIds = response.actual_answers.sort();
       const selectedIdsSorted = [...selectedOptionIds].sort();
       const isCorrect = JSON.stringify(correctIds) === JSON.stringify(selectedIdsSorted);
 
       const newUserAnswer: UserAnswer = { questionId, selectedOptionIds, isCorrect };
 
-      // Update userAnswers state
+      // 3. Update userAnswers state
       setUserAnswers(prevAnswers => {
         const existingAnswerIndex = prevAnswers.findIndex(a => a.questionId === questionId);
         if (existingAnswerIndex > -1) {
@@ -338,25 +346,45 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       });
 
-       // Update current question with explanation and correct answers for immediate feedback
+       // 4. Update current question with explanation and correct answers (IMMEDIATELY)
+       //    Set presetMessages to null initially to indicate loading has started
        setCurrentQuestion(prev => prev ? ({
            ...prev,
            correctAnswerIds: response.actual_answers,
            explanation: response.explanation,
-           userSelectedIds: selectedOptionIds // Store user selection for review
+           userSelectedIds: selectedOptionIds, // Store user selection for review
+           presetMessages: null, // Set to null to indicate loading start
        }) : null);
 
-       // Update the main questions list as well, so results page has explanation/correct answers
+       // 5. Update the main questions list as well (IMMEDIATELY, set presets to null)
        setQuestions(prevQs => prevQs.map(q => q.id === questionId ? {
            ...q,
            correctAnswerIds: response.actual_answers,
            explanation: response.explanation,
-           userSelectedIds: selectedOptionIds
+           userSelectedIds: selectedOptionIds,
+           presetMessages: null, // Set to null to indicate loading start
        } : q));
 
+      // 6. --- Start PRELOADING PRESET MESSAGES (Non-blocking) ---
+      // Do NOT await this promise
+      api.getPresetChatMessages(examId, questionId)
+          .then(presetResponse => {
+              const fetchedPresets = presetResponse.messages;
+              // Update state asynchronously when presets are fetched
+              setCurrentQuestion(prev => prev?.id === questionId ? ({ ...prev, presetMessages: fetchedPresets }) : prev);
+              setQuestions(prevQs => prevQs.map(q => q.id === questionId ? { ...q, presetMessages: fetchedPresets } : q));
+          })
+          .catch(presetError => {
+              // Log error but don't block UI
+              console.error("Error fetching preset messages in background:", presetError);
+              // Set presets to an empty array on error to indicate loading finished but failed
+              setCurrentQuestion(prev => prev?.id === questionId ? ({ ...prev, presetMessages: [] }) : prev);
+              setQuestions(prevQs => prevQs.map(q => q.id === questionId ? { ...q, presetMessages: [] } : q));
+          });
+      // --- END PRELOAD ---
 
       setIsLoading(false); // Set loading false *before* returning
-      return response; // Return the full API response for potential use in the component
+      return response; // Return the full API response immediately
 
     } catch (err: any) {
       console.error("Error submitting answer:", err);
@@ -436,6 +464,8 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
        }
    }, [examId, clearError]); // Added clearError dependency
 
+   // REMOVED fetchPresetMessages function as it's now internal to submitAnswer
+
 
   // Ensure all functions and state values provided by the context are stable
   // by wrapping function definitions in useCallback and including them in useMemo dependencies.
@@ -463,12 +493,14 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     error,
     clearError, // Use the memoized version
     sendChatMessage, // Use the memoized version
+    // fetchPresetMessages, // REMOVED
   }), [
       settings, selectedBankName, examId, currentQuestion, questions, currentQuestionIndex, totalQuestions, userAnswers, result,
       isQuizFinished, language, isLoading, error,
       // Add all memoized functions as dependencies for useMemo
       setCurrentQuestionIndex, submitAnswer, startQuiz, resetQuiz, setLanguage,
-      finishQuiz, toggleMarkQuestion, isQuestionMarked, clearError, sendChatMessage
+      finishQuiz, toggleMarkQuestion, isQuestionMarked, clearError, sendChatMessage,
+      // fetchPresetMessages // REMOVED
   ]);
 
 

@@ -138,6 +138,7 @@ const QuizPage = () => {
     sendChatMessage,
     clearError,
     selectedBankName, // Get selected bank name from context
+    // fetchPresetMessages, // REMOVED: No longer needed from context
   } = useQuiz();
 
   // Local UI state remains the same
@@ -192,6 +193,7 @@ const QuizPage = () => {
     }
     setIsSubmitting(true);
     try {
+      // submitAnswer now also fetches and stores preset messages internally
       const response = await submitAnswer(currentQuestion.id, selectedOptions);
       if (response) {
         const correctIds = response.actual_answers.sort();
@@ -351,9 +353,10 @@ const QuizPage = () => {
         <AiChatPopup
           isOpen={isAiChatOpen}
           onOpenChange={setIsAiChatOpen}
-          question={currentQuestion}
+          question={currentQuestion} // Pass the full question object (which now includes presetMessages)
           language={language}
           sendChatMessage={(message) => sendChatMessage(currentQuestion.id, message)}
+          // REMOVED fetchPresetMessages prop
         />
       )}
     </div>

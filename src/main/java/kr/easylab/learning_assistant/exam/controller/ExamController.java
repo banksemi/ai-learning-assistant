@@ -2,6 +2,7 @@ package kr.easylab.learning_assistant.exam.controller;
 
 import jakarta.validation.Valid;
 import kr.easylab.learning_assistant.admin.dto.OkResponse;
+import kr.easylab.learning_assistant.chatbot.service.ChatbotService;
 import kr.easylab.learning_assistant.common.dto.ListResponse;
 import kr.easylab.learning_assistant.exam.dto.*;
 import kr.easylab.learning_assistant.exam.service.ExamChatbotService;
@@ -71,5 +72,10 @@ public class ExamController {
     @PostMapping("/{exam_id}/questions/{no}/chat")
     public ExamChatResponse addMarker(@PathVariable Long exam_id, @PathVariable Long no, @RequestBody @Valid ExamChatRequest request) {
         return examChatbotService.chat(exam_id, no, request);
+    }
+
+    @GetMapping("/{exam_id}/questions/{no}/chat/preset")
+    public ExamChatbotPresetResponse getPresetChat(@PathVariable Long exam_id, @PathVariable Long no) {
+        return examChatbotService.generatePresetMessages(exam_id, no);
     }
 }

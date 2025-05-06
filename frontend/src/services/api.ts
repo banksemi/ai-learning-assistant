@@ -12,6 +12,7 @@ import {
     ApiTotalQuestionsResponse,
     Language,
     ApiQuestionOption, // Import ApiQuestionOption
+    ApiPresetChatResponse, // Import NEW type
 } from '@/types';
 
 // --- Read API URL from global config ---
@@ -151,6 +152,18 @@ export const postChatMessage = async (examId: number, questionId: number, data: 
     } catch (error) {
         handleApiError(error, `postChatMessage (questionId: ${questionId})`);
         throw error;
+    }
+};
+
+// NEW: Get preset chat messages
+export const getPresetChatMessages = async (examId: number, questionId: number): Promise<ApiPresetChatResponse> => {
+    try {
+        const response = await apiClient.get<ApiPresetChatResponse>(`/exams/${examId}/questions/${questionId}/chat/preset`);
+        return response.data;
+    } catch (error) {
+        handleApiError(error, `getPresetChatMessages (questionId: ${questionId})`);
+        // Return empty array on error or rethrow
+        return { messages: [] };
     }
 };
 
