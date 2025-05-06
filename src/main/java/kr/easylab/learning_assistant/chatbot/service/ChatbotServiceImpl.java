@@ -8,7 +8,11 @@ import kr.easylab.learning_assistant.chatbot.repository.ChatbotRepository;
 import kr.easylab.learning_assistant.llm.dto.LLMMessage;
 import kr.easylab.learning_assistant.llm.service.LLMService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -18,6 +22,20 @@ import java.util.List;
 public class ChatbotServiceImpl implements ChatbotService {
     private final ChatbotRepository chatbotRepository;
     private final LLMService llmService;
+    @Autowired
+    @Lazy
+    private ChatbotServiceImpl self;
+
+    private List<LLMMessage> getMessages(Long chatbotId) {
+        return chatbotRepository.findChatbotMessagesByChatbotId(chatbotId, 20L)
+                .stream()
+                .map(chatbotMessage -> {
+                    return LLMMessage.builder()
+                            .role(chatbotMessage.getRole())
+                            .text(chatbotMessage.getMessage())
+                            .build();
+                }).toList();
+    }
 
     public Chatbot getChatbot(Long chatbotId) throws NotFoundChatbot {
         Chatbot chatbot = chatbotRepository.findChatbotById(chatbotId);
@@ -64,19 +82,23 @@ public class ChatbotServiceImpl implements ChatbotService {
         Chatbot chatbot = getChatbot(chatbotId);
 
         String finalPrompt = chatbot.getPrefixPrompt() + "\n" + prompt;
-        List<LLMMessage> messages = chatbotRepository.findChatbotMessagesByChatbotId(chatbotId, 20L)
-                .stream()
-                .map(chatbotMessage -> {
-                    return LLMMessage.builder()
-                            .role(chatbotMessage.getRole())
-                            .text(chatbotMessage.getMessage())
-                            .build();
-                }).toList();
-
-        String generatedMessage = llmService.generate(finalPrompt, messages);
+        String generatedMessage = llmService.generate(finalPrompt, getMessages(chatbotId));
         addAssistantMessage(chatbotId, generatedMessage);
 
         return generatedMessage;
+    }
+
+    @Override
+    public Flux<String> generateMessageStream(Long chatbotId, String prompt) {
+        Chatbot chatbot = getChatbot(chatbotId);
+
+        String finalPrompt = chatbot.getPrefixPrompt() + "\n" + prompt;
+        StringBuilder sb = new StringBuilder();
+
+        return llmService.generateStream(finalPrompt, getMessages(chatbotId))
+                .doOnNext(sb::append)
+                .publishOn(Schedulers.boundedElastic())
+                .doOnComplete(() -> self.addAssistantMessage(chatbotId, sb.toString()));
     }
 
     @Override

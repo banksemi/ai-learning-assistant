@@ -7,16 +7,16 @@ import {
     ApiAnswerRequest,
     ApiAnswerResponse,
     ApiChatRequest,
-    ApiChatResponse,
+    // ApiChatResponse, // No longer used for stream response directly
     ApiResultResponse,
     ApiTotalQuestionsResponse,
     Language,
-    ApiQuestionOption, // Import ApiQuestionOption
-    ApiPresetChatResponse, // Import NEW type
+    ApiQuestionOption,
+    ApiPresetChatResponse,
+    StreamCallbacks, // Import StreamCallbacks type
 } from '@/types';
 
 // --- Read API URL from global config ---
-// Declare the global config object for TypeScript
 declare global {
   interface Window {
     config?: {
@@ -24,11 +24,8 @@ declare global {
     };
   }
 }
-
-// Read from window.config, fallback to Vite env var (for safety during dev), then hardcoded default
 const API_BASE_URL = window.config?.API_BASE_URL;
 
-// Log which URL is being used
 if (window.config?.API_BASE_URL) {
     console.log("Using API URL from config.js:", API_BASE_URL);
 } else if (import.meta.env.VITE_API_BASE_URL) {
@@ -52,20 +49,16 @@ const apiClient = axios.create({
     },
 });
 
-// --- Error Handling Helper ---
+// --- Error Handling Helper (for non-streaming requests) ---
 const handleApiError = (error: unknown, context: string) => {
     console.error(`API Error in ${context}:`, error);
     if (axios.isAxiosError(error)) {
         if (error.response) {
-            // Extract specific error message from API if available
             const apiError = error.response.data as { error_code?: string; message?: string };
-            // Include status code for context
             throw new Error(`API Error (${error.response.status}) in ${context}: ${apiError.message || error.message}`);
         } else if (error.request) {
-            // Request was made but no response received
             throw new Error(`API Error in ${context}: No response received from server.`);
         } else {
-            // Something happened in setting up the request
             throw new Error(`API Error in ${context}: ${error.message}`);
         }
     } else if (error instanceof Error) {
@@ -83,8 +76,7 @@ export const getQuestionBanks = async (): Promise<ApiQuestionBankListResponse> =
         return response.data;
     } catch (error) {
         handleApiError(error, 'getQuestionBanks');
-        // Return a default structure or rethrow, depending on desired handling
-        return { total: 0, data: [] }; // Example default
+        return { total: 0, data: [] };
     }
 };
 
@@ -94,7 +86,7 @@ export const createExam = async (data: ApiExamCreationRequest): Promise<ApiExamC
         return response.data;
     } catch (error) {
         handleApiError(error, 'createExam');
-        throw error; // Rethrow after logging/handling
+        throw error;
     }
 };
 
@@ -108,11 +100,8 @@ export const getTotalQuestions = async (examId: number): Promise<ApiTotalQuestio
     }
 };
 
-
-// Fetch question by *index* (assuming backend maps index to ID for the exam)
 export const getQuestion = async (examId: number, questionIndex: number): Promise<ApiQuestionResponse> => {
     try {
-        // Using index in the URL as discussed
         const response = await apiClient.get<ApiQuestionResponse>(`/exams/${examId}/questions/${questionIndex}`);
         return response.data;
     } catch (error) {
@@ -145,24 +134,151 @@ export const toggleMarker = async (examId: number, questionId: number, mark: boo
     }
 };
 
-export const postChatMessage = async (examId: number, questionId: number, data: ApiChatRequest): Promise<ApiChatResponse> => {
+// --- NEW: Chat Streaming Function using native EventSource ---
+export const postChatMessageStream = (
+    examId: number,
+    questionId: number,
+    data: ApiChatRequest,
+    callbacks: StreamCallbacks
+): EventSource | null => {
+    // Construct the URL for the POST request that initiates the stream
+    // Note: EventSource itself uses GET, but we need POST to send the initial message.
+    // We'll use fetch for the initial POST, then potentially EventSource if the server redirects
+    // or provides a specific SSE endpoint URL in response.
+    // **Correction:** EventSource *can* be used with POST if the server supports it,
+    // but it's non-standard and requires server configuration.
+    // A more common pattern is:
+    // 1. POST request to initiate the chat and get a stream ID or URL.
+    // 2. Use EventSource with GET on the returned stream URL.
+    // **Assuming the current endpoint `/chat/stream` directly handles POST for SSE:**
+    // We *cannot* use native EventSource directly with POST in a standard way.
+    // The previous `fetch` implementation is the correct approach for POST-based SSE.
+
+    // **Reverting to the fetch-based implementation as native EventSource doesn't support POST easily.**
+    // Let's stick with the fetch implementation and ensure its parsing is robust.
+
+    const url = `${API_BASE_URL}/exams/${examId}/questions/${questionId}/chat/stream`;
+
     try {
-        const response = await apiClient.post<ApiChatResponse>(`/exams/${examId}/questions/${questionId}/chat`, data);
-        return response.data;
-    } catch (error) {
-        handleApiError(error, `postChatMessage (questionId: ${questionId})`);
-        throw error;
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'text/event-stream',
+            },
+            body: JSON.stringify(data),
+            // Consider adding signal for AbortController if explicit closing is needed
+        }).then(response => {
+            if (!response.ok) {
+                response.text().then(text => {
+                    console.error(`SSE HTTP Error ${response.status}:`, text);
+                    callbacks.onError(`HTTP Error ${response.status}: ${text || response.statusText}`);
+                }).catch(() => {
+                    callbacks.onError(`HTTP Error ${response.status}: ${response.statusText}`);
+                });
+                return;
+            }
+
+            if (!response.body) {
+                callbacks.onError("Response body is null");
+                return;
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            callbacks.onOpen?.();
+
+            function processBuffer() {
+                // Process buffer line by line for SSE messages ('data: ...\n\n')
+                let eventEndIndex;
+                while ((eventEndIndex = buffer.indexOf('\n\n')) !== -1) {
+                    const eventText = buffer.substring(0, eventEndIndex);
+                    buffer = buffer.substring(eventEndIndex + 2); // Consume the event and the delimiter
+
+                    // Extract data field(s) from the event block
+                    const lines = eventText.split('\n');
+                    let eventDataString = ''; // Store the raw string data
+                    for (const line of lines) {
+                        if (line.startsWith('data:')) {
+                            // Append data, handling potential multi-line data fields
+                            eventDataString += line.substring(5).trim() + '\n'; // Add newline if server sends multi-line data
+                        }
+                        // Ignore other fields like 'id:', 'event:', 'retry:' for now
+                    }
+
+                    // Trim trailing newline if added
+                    eventDataString = eventDataString.trimEnd();
+
+                    if (eventDataString) {
+                        try {
+                            // **MODIFICATION: Parse the data string as JSON**
+                            const jsonData = JSON.parse(eventDataString);
+                            // **MODIFICATION: Extract the 'assistant' field**
+                            const assistantChunk = jsonData?.assistant;
+
+                            if (typeof assistantChunk === 'string') {
+                                // Pass the extracted assistant message chunk
+                                callbacks.onMessage(assistantChunk);
+                            } else {
+                                console.warn("SSE data received, but 'assistant' field is missing or not a string:", jsonData);
+                            }
+                        } catch (parseError) {
+                            console.error("SSE JSON parsing error:", parseError, "Raw data:", eventDataString);
+                            // Decide how to handle parsing errors: skip, call onError, etc.
+                            // callbacks.onError("Failed to parse SSE data as JSON");
+                        }
+                    }
+                }
+            }
+
+            function push() {
+                reader.read().then(({ done, value }) => {
+                    if (done) {
+                        // Process any remaining buffer content when the stream ends
+                        processBuffer();
+                        console.log("SSE stream finished.");
+                        callbacks.onClose?.();
+                        return;
+                    }
+
+                    buffer += decoder.decode(value, { stream: true });
+                    processBuffer(); // Process the updated buffer
+
+                    // Continue reading
+                    push();
+                }).catch(error => {
+                    console.error("SSE stream reading error:", error);
+                    callbacks.onError(error.message || "Stream reading error");
+                });
+            }
+
+            push();
+
+        }).catch(error => {
+            console.error("SSE fetch initiation error:", error);
+            callbacks.onError(error.message || "Failed to initiate SSE connection");
+        });
+
+        // Cannot return EventSource with fetch. Manage lifecycle via callbacks/AbortController.
+        return null;
+
+    } catch (error: any) {
+        console.error("Error setting up SSE fetch:", error);
+        callbacks.onError(error.message || "Error setting up SSE connection");
+        return null;
     }
 };
+// --- End of Chat Streaming Function ---
 
-// NEW: Get preset chat messages
+
 export const getPresetChatMessages = async (examId: number, questionId: number): Promise<ApiPresetChatResponse> => {
     try {
         const response = await apiClient.get<ApiPresetChatResponse>(`/exams/${examId}/questions/${questionId}/chat/preset`);
         return response.data;
     } catch (error) {
         handleApiError(error, `getPresetChatMessages (questionId: ${questionId})`);
-        // Return empty array on error or rethrow
         return { messages: [] };
     }
 };
@@ -179,31 +295,22 @@ export const getResults = async (examId: number): Promise<ApiResultResponse> => 
 
 // --- Admin Functions ---
 
-// [POST] /api/1/login (Admin Authentication)
 export const loginAdmin = async (password: string): Promise<boolean> => {
     try {
         await apiClient.post('/login', { password });
-        // If the request succeeds (status 2xx), return true
         return true;
     } catch (error) {
-        // Check specifically for 403 Forbidden or other relevant error codes
         if (axios.isAxiosError(error) && (error.response?.status === 403 || error.response?.status === 401)) {
-             // Throw a specific error for invalid password
              throw new Error("Invalid password.");
         }
-        // Handle other errors (network issues, server errors)
         handleApiError(error, 'loginAdmin');
-        // Rethrow or return false depending on desired behavior for other errors
-        throw error; // Rethrow other errors by default
+        throw error;
     }
 };
 
-
-// Helper to get Basic Auth header using the provided password
 const getAdminAuthHeader = (password: string) => {
-    // WARNING: Transmitting password like this is insecure!
     try {
-        const credentials = btoa(`admin:${password}`); // Use the provided password
+        const credentials = btoa(`admin:${password}`);
         return { Authorization: `Basic ${credentials}` };
     } catch (e) {
         console.error("Error encoding admin credentials:", e);
@@ -211,21 +318,18 @@ const getAdminAuthHeader = (password: string) => {
     }
 };
 
-// [POST] /api/1/question-banks (Admin)
-// Accepts password as an argument
 export const createQuestionBankAdmin = async (title: string, password: string): Promise<{ question_bank_id: number } | null> => {
     try {
         const response = await apiClient.post<{ question_bank_id: number }>(
             '/question-banks',
             { title },
-            { headers: getAdminAuthHeader(password) } // Pass password to header helper
+            { headers: getAdminAuthHeader(password) }
         );
         return response.data;
     } catch (error) {
         if (axios.isAxiosError(error) && error.response?.status === 409) {
             throw new Error(`Question bank "${title}" already exists.`);
         }
-        // Check for 401/403 specifically for auth failure
         if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
             throw new Error(`Authentication failed. Invalid password.`);
         }
@@ -234,26 +338,21 @@ export const createQuestionBankAdmin = async (title: string, password: string): 
     }
 };
 
-// Interface for the NEW expected structure of a single question upload
 interface ApiQuestionUploadData {
-    title: string; // Changed from 'text'
-    correct_answers: string[]; // New field
-    incorrect_answers: string[]; // New field
-    explanation?: string; // Explanation is now part of the request (optional)
+    title: string;
+    correct_answers: string[];
+    incorrect_answers: string[];
+    explanation?: string;
 }
 
-// [POST] /api/1/question-banks/{question_bank_id}/questions (Admin)
-// Accepts password as an argument
-// Updated function signature and request body
 export const uploadSingleQuestionAdmin = async (questionBankId: number, questionData: ApiQuestionUploadData, password: string): Promise<void> => {
     try {
         await apiClient.post(
             `/question-banks/${questionBankId}/questions`,
-            questionData, // Send the new data structure directly (now includes explanation)
-            { headers: getAdminAuthHeader(password) } // Pass password to header helper
+            questionData,
+            { headers: getAdminAuthHeader(password) }
         );
     } catch (error) {
-         // Check for 401/403 specifically for auth failure
          if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
             throw new Error(`Authentication failed. Invalid password.`);
         }

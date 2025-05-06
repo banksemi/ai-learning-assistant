@@ -40,9 +40,13 @@
     --error: 0 72% 51%;
     --error-foreground: 0 0% 100%;
 
+    /* Border: Reverted to original lighter value for separators etc. */
     --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%; /* Keep input border lighter */
     --ring: 221.2 83.2% 53.3%;
+
+    /* NEW: Scrollbar Thumb Background - Slightly lighter dark gray */
+    --scrollbar-thumb-bg: 214.3 20% 70%; /* Adjusted lightness from 60% */
 
     --radius: 0.5rem;
 
@@ -95,9 +99,13 @@
     --error: 0 63% 50%;
     --error-foreground: 0 0% 100%;
 
+    /* Border: Reverted to original lighter value for separators etc. */
     --border: 217.2 20% 25.5%;
-    --input: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%; /* Keep input border darker */
     --ring: 217.2 91.2% 59.8%;
+
+    /* NEW: Scrollbar Thumb Background - Slightly lighter visible gray */
+    --scrollbar-thumb-bg: 217.2 15% 60%; /* Adjusted lightness from 50% */
 
     /* Header Border Color: Adjust to be slightly darker than new secondary */
     --header-border: 220 12% 8%; /* Darker border */

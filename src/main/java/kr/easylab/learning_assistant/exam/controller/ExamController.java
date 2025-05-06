@@ -15,11 +15,18 @@ import kr.easylab.learning_assistant.question.dto.QuestionCreationRequest;
 import kr.easylab.learning_assistant.question.service.QuestionBankService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import reactor.core.publisher.Flux;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/1/exams")
@@ -77,5 +84,32 @@ public class ExamController {
     @GetMapping("/{exam_id}/questions/{no}/chat/preset")
     public ExamChatbotPresetResponse getPresetChat(@PathVariable Long exam_id, @PathVariable Long no) {
         return examChatbotService.generatePresetMessages(exam_id, no);
+    }
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    @PostMapping(value = "/{exam_id}/questions/{no}/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamLlmResponse(@PathVariable Long exam_id, @PathVariable Long no, @RequestBody @Valid ExamChatRequest request) {
+        SseEmitter emitter = new SseEmitter(240_000L);
+        Flux<String> flux = examChatbotService.chatStream(exam_id, no, request);
+        flux
+                .doOnError(emitter::completeWithError)
+                .doOnComplete(emitter::complete)
+                .subscribe(str -> {
+                        try {
+                            emitter.send(SseEmitter.event().data(new ExamChatResponse(str)).build());
+                        } catch (IOException e) {
+                            emitter.completeWithError(e);
+                            throw new RuntimeException(e);
+                        }
+                });
+
+        emitter.onTimeout(() -> {
+            System.out.println("SSE Emitter timed out");
+            emitter.complete();
+        });
+
+        emitter.onCompletion(() -> System.out.println("SSE Emitter completed"));
+        emitter.onError(e -> System.err.println("SSE Emitter error: " + e.getMessage()));
+
+        return emitter;
     }
 }

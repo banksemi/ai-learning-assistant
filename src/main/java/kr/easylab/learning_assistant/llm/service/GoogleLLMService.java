@@ -16,9 +16,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -115,13 +118,61 @@ public class GoogleLLMService implements LLMService {
                 log.info("API Response:\n{}", part.getText());
                 return part.getText();
             }
-
         }
         return null;
     }
     @Override
     public String generate(String prompt, List<LLMMessage> messages) {
         return call(prompt, messages, null);
+    }
+
+    @Override
+    public Flux<String> generateStream(String prompt, List<LLMMessage> messages) {
+        List<Content> contents = messages.stream().map(
+                message -> {
+                    return Content.builder()
+                            .role(mapRole(message.getRole()))
+                            .parts(List.of(new Part(message.getText())))
+                            .build();
+                }
+        ).toList(); // 수정 불가능
+
+        GenerateContentRequest request = GenerateContentRequest.builder()
+                .systemInstruction(new SystemInstruction(prompt))
+                .contents(contents)
+                .build();
+
+        ParameterizedTypeReference<ServerSentEvent<GenerateContentResponse>> typeRef =
+                new ParameterizedTypeReference<>() {};
+
+        return webClient.post()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/v1beta/models/" + model + ":streamGenerateContent")
+                        .queryParam("key", apiKey)
+                        .queryParam("alt", "sse")
+                        .build())
+                .bodyValue(request)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, // 4xx, 5xx 에러 처리
+                        clientResponse -> clientResponse.bodyToMono(String.class)
+                                .flatMap(errorBody -> {
+                                    log.error("Google AI API Error ({}): {}", clientResponse.statusCode(), errorBody);
+                                    return Mono.error(new RuntimeException("Google AI API Error: " + clientResponse.statusCode() + " - " + errorBody));
+                                }))
+                .bodyToFlux(typeRef)
+                .doOnNext(sse -> log.trace("Received SSE: id={}, event={}, data={}", sse.id(), sse.event(), sse.data()))
+                .mapNotNull(ServerSentEvent::data)
+                .concatMap(response -> {
+                    Content responseContent = response.getCandidates().get(0).getContent();
+                    for (Part part : responseContent.getParts()) {
+                        if (part.getText() != null) {
+                            return Mono.just(part.getText());
+                        }
+                    }
+                    return Mono.empty();
+                })
+                .doOnError(error -> log.error("Error processing Google AI stream: ", error))
+                .doOnComplete(() -> log.info("Google AI stream processing completed."));
     }
 
     @Override

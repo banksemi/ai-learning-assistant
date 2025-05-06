@@ -11,77 +11,142 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Send, Sparkles, Loader2, HelpCircle } from 'lucide-react';
-import { Language, Question, ChatMessage as FrontendChatMessage, ApiChatResponse } from '@/types';
+import { Language, Question, ChatMessage as FrontendChatMessage } from '@/types';
 import { cn } from '@/lib/utils';
 import { toast } from "sonner";
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import CodeBlock from '@/components/CodeBlock';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useQuiz } from '@/context/QuizContext';
+import AiMessageRenderer from './AiMessageRenderer'; // Import the new renderer component
+
+// Add an optional id field for tracking streaming messages
+interface StreamingChatMessage extends FrontendChatMessage {
+    id?: number; // Unique ID for the streaming message
+}
 
 interface AiChatPopupProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   question: Question | null;
   language: Language;
-  sendChatMessage: (message: string) => Promise<ApiChatResponse | null>;
 }
+
+// Define default typing speed
+const DEFAULT_TYPING_SPEED = 30;
+const FAST_TYPING_SPEED = 10;
+const SLOW_TYPING_SPEED = 50;
 
 const AiChatPopup: React.FC<AiChatPopupProps> = ({
     isOpen,
     onOpenChange,
     question,
     language,
-    sendChatMessage,
 }) => {
+  const { sendChatMessage, closeChatStream } = useQuiz();
   const [inputValue, setInputValue] = useState('');
-  const [messages, setMessages] = useState<FrontendChatMessage[]>([]);
+  const [messages, setMessages] = useState<StreamingChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null); // Keep inputRef for re-focusing after send
+  const inputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
+  const currentAiMessageIdRef = useRef<number | null>(null);
+  // State for dynamic typing speed
+  const [typingSpeed, setTypingSpeed] = useState<number>(DEFAULT_TYPING_SPEED);
 
   const presetMessages = question?.presetMessages;
 
-  useEffect(() => {
+  const scrollToBottom = useCallback(() => {
     const viewport = scrollAreaRef.current?.querySelector<HTMLDivElement>('[data-radix-scroll-area-viewport]');
     if (viewport) {
-      viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+      requestAnimationFrame(() => {
+        viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+      });
     }
-  }, [messages, isLoading]);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (!isOpen) {
+        closeChatStream();
+      }
+    };
+  }, [isOpen, closeChatStream]);
 
   const handleSendMessage = useCallback(async (messageToSend?: string) => {
     const textToSend = messageToSend ?? inputValue;
     if (!textToSend.trim() || isLoading || !question) return;
 
-    const userMessage: FrontendChatMessage = { sender: 'user', text: textToSend };
-    setMessages((prev) => [...prev, userMessage]);
+    closeChatStream();
+    setTypingSpeed(DEFAULT_TYPING_SPEED); // Reset speed for new message
+
+    const userMessage: StreamingChatMessage = { sender: 'user', text: textToSend };
+    const aiMessageId = Date.now();
+    const initialAiMessage: StreamingChatMessage = { id: aiMessageId, sender: 'ai', text: '' };
+    currentAiMessageIdRef.current = aiMessageId;
+
+    setMessages((prev) => [...prev, userMessage, initialAiMessage]);
     setInputValue('');
     setIsLoading(true);
 
-    try {
-      const response = await sendChatMessage(textToSend);
-      if (response && response.assistant) {
-        const aiResponse: FrontendChatMessage = { sender: 'ai', text: response.assistant };
-        setMessages((prev) => [...prev, aiResponse]);
-      } else {
-         setMessages((prev) => [...prev, { sender: 'ai', text: language === 'ko' ? 'AI로부터 응답을 받지 못했습니다.' : 'Did not receive a response from AI.' }]);
-      }
-    } catch (error) {
-      console.error("Error sending chat message:", error);
-       setMessages((prev) => [...prev, { sender: 'ai', text: language === 'ko' ? '메시지 전송 중 오류가 발생했습니다.' : 'Error sending message.' }]);
-       toast.error(language === 'ko' ? '메시지 전송 실패' : 'Failed to send message');
-    } finally {
-      setIsLoading(false);
-      // Re-focus input after sending a message on non-mobile devices
-      if (!isMobile && inputRef.current && isOpen) {
-        requestAnimationFrame(() => { // Use requestAnimationFrame for smoother focus
-          inputRef.current?.focus();
+    scrollToBottom(); // Scroll only when user sends
+
+    sendChatMessage(question.id, textToSend, {
+      onOpen: () => {
+        console.log("SSE connection opened.");
+      },
+      onMessage: (chunk) => {
+        // Calculate speed based on chunk length
+        const chunkLength = chunk.length;
+        let newSpeed = DEFAULT_TYPING_SPEED;
+        if (chunkLength > 50) {
+            newSpeed = FAST_TYPING_SPEED;
+        } else if (chunkLength <= 10) {
+            newSpeed = SLOW_TYPING_SPEED;
+        }
+        // Update speed state *before* updating message text
+        setTypingSpeed(newSpeed);
+
+        // Update message text
+        setMessages((prev) => {
+          const currentAiMsgIndex = prev.findIndex(msg => msg.id === currentAiMessageIdRef.current);
+          if (currentAiMsgIndex === -1) return prev;
+
+          const next = [...prev];
+          const targetMsg = next[currentAiMsgIndex];
+          const updatedMsg = { ...targetMsg, text: targetMsg.text + chunk };
+          next[currentAiMsgIndex] = updatedMsg;
+          return next;
         });
+      },
+      onError: (error) => {
+        console.error("SSE Error:", error);
+        const errorText = typeof error === 'string' ? error : (language === 'ko' ? 'AI 채팅 중 오류가 발생했습니다.' : 'An error occurred during AI chat.');
+        toast.error(language === 'ko' ? 'AI 채팅 오류' : 'AI Chat Error', { description: errorText });
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === currentAiMessageIdRef.current
+              ? { ...msg, text: `❌ ${language === 'ko' ? '오류 발생' : 'Error occurred'}` }
+              : msg
+          )
+        );
+        setIsLoading(false);
+        currentAiMessageIdRef.current = null;
+        setTypingSpeed(DEFAULT_TYPING_SPEED); // Reset speed on error
+      },
+      onClose: () => {
+        console.log("SSE connection closed by server.");
+        setIsLoading(false);
+        currentAiMessageIdRef.current = null;
+        setTypingSpeed(DEFAULT_TYPING_SPEED); // Reset speed on close
+        if (!isMobile && inputRef.current && isOpen) {
+          requestAnimationFrame(() => {
+            inputRef.current?.focus();
+          });
+        }
       }
-    }
-  }, [inputValue, isLoading, question, sendChatMessage, language, isOpen, isMobile]);
+    });
+
+  }, [inputValue, isLoading, question, sendChatMessage, language, isOpen, isMobile, closeChatStream, scrollToBottom]);
 
   const handlePresetClick = (preset: string) => {
       if (isLoading) return;
@@ -99,15 +164,17 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({
     }
   }, [handleSendMessage]);
 
-  // Effect to reset state when popup opens (but not focus)
   useEffect(() => {
     if (isOpen) {
       setMessages([]);
       setInputValue('');
       setIsLoading(false);
-      // Auto-focus on open is now handled by onOpenAutoFocus or prevented by it.
+      currentAiMessageIdRef.current = null;
+      setTypingSpeed(DEFAULT_TYPING_SPEED); // Reset speed when opening
+    } else {
+        closeChatStream();
     }
-  }, [isOpen]);
+  }, [isOpen, closeChatStream]);
 
 
   return (
@@ -116,10 +183,9 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({
         className="sm:max-w-2xl p-0 flex flex-col max-h-[80vh] h-[80vh] md:max-h-[70vh] md:h-[70vh]"
         onPointerDownOutside={(e) => {
             if (isMobile) {
-                e.preventDefault(); // Prevent closing on touch outside on mobile
+                e.preventDefault();
             }
         }}
-        // Prevent default auto-focus behavior of the dialog
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader className="p-4 border-b flex-shrink-0">
@@ -129,9 +195,9 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({
         </DialogHeader>
 
         <ScrollArea className="flex-1 px-4 pt-4 pb-0 overflow-y-auto" ref={scrollAreaRef}>
-          <div className="space-y-4">
-            {messages.map((message, index) => (
-              <div key={index} className={cn(
+          <div className="space-y-4 pb-4">
+            {messages.map((message) => (
+              <div key={message.id ?? message.text} className={cn(
                 'flex items-start gap-2 w-full',
                 message.sender === 'user' ? 'justify-end' : 'justify-start'
               )}>
@@ -141,33 +207,12 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({
                       <Sparkles className="h-4 w-4 text-primary" />
                     </div>
                     <div className="rounded-lg p-3 max-w-[90%] bg-gray-200 dark:bg-gray-700 prose dark:prose-invert">
-                      <ReactMarkdown
-                        children={message.text}
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          code({ node, inline, className, children, ...props }) {
-                            const match = /language-(\w+)/.exec(className || '');
-                            if (!inline && match) {
-                              return (
-                                <CodeBlock
-                                  language={match[1]}
-                                  value={String(children).replace(/\n$/, '')}
-                                />
-                              );
-                            }
-                            return (
-                              <code
-                                className={cn(
-                                  "font-normal bg-muted text-foreground px-1 py-0.5 rounded-sm text-sm",
-                                  className
-                                )}
-                              >
-                                {children}
-                              </code>
-                            );
-                          },
-                          pre: ({ node, ...props }) => <pre style={{ margin: 0 }} {...props} />,
-                        }}
+                      <AiMessageRenderer
+                        message={message}
+                        isStreaming={message.id === currentAiMessageIdRef.current}
+                        language={language}
+                        // Pass the dynamic speed to the renderer
+                        speed={typingSpeed}
                       />
                     </div>
                   </>
@@ -179,22 +224,10 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({
                 )}
               </div>
             ))}
-
-            {isLoading && (
-              <div className="flex items-start gap-2 justify-start">
-                 <div className="flex-shrink-0 h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
-                   <Sparkles className="h-4 w-4 text-primary" />
-                 </div>
-                <div className="rounded-lg p-3 bg-gray-200 dark:bg-gray-700 flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  <span className="italic text-muted-foreground">{language === 'ko' ? '답변 생성 중...' : 'Generating response...'}</span>
-                </div>
-              </div>
-            )}
           </div>
         </ScrollArea>
 
-        {messages.length === 0 && (
+        {messages.length === 0 && !isLoading && (
             <div className="px-4 pt-2 pb-1 border-t">
                 <h4 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
                     <HelpCircle className="h-3 w-3" />

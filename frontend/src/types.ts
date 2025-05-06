@@ -1,3 +1,6 @@
+import { CheckCircle, XCircle } from "lucide-react";
+
+
 // Base Language Type
 export type Language = 'ko' | 'en';
 
@@ -52,12 +55,15 @@ export interface ApiAnswerResponse {
     explanation: string; // Explanation text (can include markdown)
 }
 
-// [POST] /api/1/exams/{exam_id}/questions/{question_id}/chat
+// [POST] /api/1/exams/{exam_id}/questions/{question_id}/chat/stream
 export interface ApiChatRequest {
     user: string; // User's message
 }
+// Note: The response is now SSE, not a single JSON object.
+// The final assembled message might still fit this structure,
+// but the API function will handle streaming chunks (strings).
 export interface ApiChatResponse {
-    assistant: string; // AI's response
+    assistant: string; // AI's fully assembled response
 }
 
 // [GET] /api/1/exams/{exam_id}/questions/{question_id}/chat/preset (NEW)
@@ -147,4 +153,12 @@ export interface QuizResult {
 export interface ChatMessage {
     sender: 'user' | 'ai';
     text: string;
+}
+
+// Type for SSE callbacks
+export interface StreamCallbacks {
+    onOpen?: () => void;
+    onMessage: (chunk: string) => void;
+    onError: (error: Event | string) => void;
+    onClose?: () => void; // Called when server explicitly closes the stream
 }
