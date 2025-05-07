@@ -6,6 +6,7 @@ import kr.easylab.learning_assistant.exam.entity.Exam;
 import kr.easylab.learning_assistant.exam.entity.ExamQuestion;
 import kr.easylab.learning_assistant.exam.exception.NotFoundExam;
 import kr.easylab.learning_assistant.exam.repository.ExamRepository;
+import kr.easylab.learning_assistant.llm.dto.LLMConfig;
 import kr.easylab.learning_assistant.llm.dto.LLMMessage;
 import kr.easylab.learning_assistant.llm.service.LLMService;
 import kr.easylab.learning_assistant.question.entity.Answer;
@@ -65,11 +66,11 @@ public class ExamReportService {
         """ + knowledge;
 
         return llmService.generate(
-                prompt,
                 List.of(LLMMessage.builder()
                         .role(LLMMessage.Role.USER)
                         .text(userMessage.toString())
                         .build())
+                , LLMConfig.builder().prompt(prompt).build()
         );
     }
 

@@ -5,6 +5,7 @@ import kr.easylab.learning_assistant.chatbot.entity.Chatbot;
 import kr.easylab.learning_assistant.chatbot.entity.ChatbotMessage;
 import kr.easylab.learning_assistant.chatbot.exception.NotFoundChatbot;
 import kr.easylab.learning_assistant.chatbot.repository.ChatbotRepository;
+import kr.easylab.learning_assistant.llm.dto.LLMConfig;
 import kr.easylab.learning_assistant.llm.dto.LLMMessage;
 import kr.easylab.learning_assistant.llm.service.LLMService;
 import lombok.RequiredArgsConstructor;
@@ -82,7 +83,7 @@ public class ChatbotServiceImpl implements ChatbotService {
         Chatbot chatbot = getChatbot(chatbotId);
 
         String finalPrompt = chatbot.getPrefixPrompt() + "\n" + prompt;
-        String generatedMessage = llmService.generate(finalPrompt, getMessages(chatbotId));
+        String generatedMessage = llmService.generate(getMessages(chatbotId), LLMConfig.builder().prompt(finalPrompt).build());
         addAssistantMessage(chatbotId, generatedMessage);
 
         return generatedMessage;
@@ -95,7 +96,7 @@ public class ChatbotServiceImpl implements ChatbotService {
         String finalPrompt = chatbot.getPrefixPrompt() + "\n" + prompt;
         StringBuilder sb = new StringBuilder();
 
-        return llmService.generateStream(finalPrompt, getMessages(chatbotId))
+        return llmService.generateStream(getMessages(chatbotId), LLMConfig.builder().prompt(finalPrompt).build())
                 .doOnNext(sb::append)
                 .publishOn(Schedulers.boundedElastic())
                 .doOnComplete(() -> self.addAssistantMessage(chatbotId, sb.toString()));

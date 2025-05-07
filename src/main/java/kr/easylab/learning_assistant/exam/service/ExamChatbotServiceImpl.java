@@ -7,6 +7,7 @@ import kr.easylab.learning_assistant.exam.entity.Exam;
 import kr.easylab.learning_assistant.exam.entity.ExamQuestion;
 import kr.easylab.learning_assistant.exam.exception.NotFoundExamQuestion;
 import kr.easylab.learning_assistant.exam.repository.ExamRepository;
+import kr.easylab.learning_assistant.llm.dto.LLMConfig;
 import kr.easylab.learning_assistant.llm.dto.LLMMessage;
 import kr.easylab.learning_assistant.llm.service.LLMService;
 import lombok.RequiredArgsConstructor;
@@ -83,22 +84,31 @@ public class ExamChatbotServiceImpl implements ExamChatbotService {
 
         String prompt = """
         학습 문제에 대해 사용자가 할만한 질문들을 생성해야합니다. (최소 5개, 최대 7개)
-        주요 키워드를 중점으로 짦은 문장들로 만들어주세요.
-        - 비슷한 답변이 나올 수 있는 질문들은 하나의 질문으로 표시하세요.
+        주요 키워드를 중점으로 **짦은 문장**들로 만들어주세요.
+        - 비슷한 답변이 나올 수 있는 질문들은 하나의 질문으로 제안하세요.
         - 생성된 질문에는 전반적인 설명을 요청하는 질문이 제일 앞에 포함 되어야합니다.
         - 보기에 없더라도 유사 개념이나 다양한 시나리오에 대한 질문을 포함해주세요.
         - 해설에서도 질문을 생성할 수 있습니다.
+        - '보기 B' 처럼 지칭만 사용할 경우 사용자가 알아보기 어렵습니다.
         
-        생성된 질문 예시
+        **생성된 질문 예시**
         - 이해하기 쉽게 설명해주세요.
+        (전반적인 설명 요청)
         - 제가 선택한 S3 Transfer Acceleration이 답이 아닌 이유가 무엇인가요?
+        (사용자의 선택 기반)
         - SSM Parameter Store와 SSM Audil Trail의 차이를 모르겠어요.
+        (유사 보기에 대한 설명 요청)
         - Secrets Manager로도 문제를 해결할 수 있을까요?
+        (문제에 등장하지 않은 개념)
         
         출력 언어:""" + examQuestion.getExam().getLanguage();
-        return llmService.generate(prompt,
+        return llmService.generate(
                 List.of(
                         LLMMessage.builder().role(LLMMessage.Role.USER).text(examQuestionMapper.mapToString(examQuestion)).build()
-                ), ExamChatbotPresetResponse.class);
+                ), ExamChatbotPresetResponse.class,
+                LLMConfig.builder()
+                        .prompt(prompt)
+                        .thinking(LLMConfig.ThinkingMode.no)
+                        .build());
     }
 }

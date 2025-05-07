@@ -9,6 +9,7 @@ import io.swagger.v3.core.converter.ResolvedSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.constraints.NotNull;
+import kr.easylab.learning_assistant.llm.dto.LLMConfig;
 import kr.easylab.learning_assistant.llm.dto.LLMMessage;
 import kr.easylab.learning_assistant.llm.dto.genai.*;
 import lombok.Getter;
@@ -73,7 +74,9 @@ public class GoogleLLMService implements LLMService {
         }
     }
 
-    private String call(String prompt, List<LLMMessage> messages, GenerationConfig config) {
+    private String call(LLMConfig llmConfig, List<LLMMessage> messages, GenerationConfig config) {
+        if (llmConfig.getThinking() == LLMConfig.ThinkingMode.no)
+            config.setThinkingConfig(ThinkingConfig.builder().thinkingBudget(0L).build());
         List<Content> contents = messages.stream().map(
                 message -> {
                     return Content.builder()
@@ -84,7 +87,7 @@ public class GoogleLLMService implements LLMService {
         ).toList(); // 수정 불가능
 
         GenerateContentRequest request = GenerateContentRequest.builder()
-                .systemInstruction(new SystemInstruction(prompt))
+                .systemInstruction(new SystemInstruction(llmConfig.getPrompt()))
                 .contents(contents)
                 .generationConfig(config)
                 .build();
@@ -122,12 +125,12 @@ public class GoogleLLMService implements LLMService {
         return null;
     }
     @Override
-    public String generate(String prompt, List<LLMMessage> messages) {
-        return call(prompt, messages, null);
+    public String generate(List<LLMMessage> messages, LLMConfig config) {
+        return call(config, messages, null);
     }
 
     @Override
-    public Flux<String> generateStream(String prompt, List<LLMMessage> messages) {
+    public Flux<String> generateStream(List<LLMMessage> messages, LLMConfig config) {
         List<Content> contents = messages.stream().map(
                 message -> {
                     return Content.builder()
@@ -138,7 +141,7 @@ public class GoogleLLMService implements LLMService {
         ).toList(); // 수정 불가능
 
         GenerateContentRequest request = GenerateContentRequest.builder()
-                .systemInstruction(new SystemInstruction(prompt))
+                .systemInstruction(new SystemInstruction(config.getPrompt()))
                 .contents(contents)
                 .build();
 
@@ -182,12 +185,12 @@ public class GoogleLLMService implements LLMService {
     }
 
     @Override
-    public <T> T generate(String prompt, List<LLMMessage> messages, Class<T> clazz) {
+    public <T> T generate(List<LLMMessage> messages, Class<T> clazz, LLMConfig config) {
         ResolvedSchema resolvedSchema = ModelConverters.getInstance()
                 .resolveAsResolvedSchema(new AnnotatedType(clazz).resolveAsRef(false));
 
         String responseText = call(
-                prompt,
+                config,
                 messages,
                 GenerationConfig.builder()
                         .responseMimeType("application/json")
