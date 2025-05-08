@@ -14,6 +14,7 @@ spring:
       ddl-auto: update
     properties:
       format_sql: true
+    open-in-view: false
 
   application:
     name: learning-assistant

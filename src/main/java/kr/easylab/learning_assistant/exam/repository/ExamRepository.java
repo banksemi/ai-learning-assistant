@@ -6,6 +6,7 @@ import kr.easylab.learning_assistant.exam.entity.Exam;
 import kr.easylab.learning_assistant.exam.entity.ExamQuestion;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 @RequiredArgsConstructor
@@ -26,6 +27,7 @@ public class ExamRepository {
         return em.find(Exam.class, examId);
     }
 
+    @Transactional(readOnly = true)
     public ExamQuestion findQuestion(Long examId, Long no) {
         try {
             return em.createQuery("SELECT q FROM ExamQuestion q WHERE q.exam.id = :examId AND q.no = :no", ExamQuestion.class)

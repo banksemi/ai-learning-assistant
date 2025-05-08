@@ -28,6 +28,8 @@ public class LLMTranslationService implements TranslationService {
         - 변수 명이나 지칭으로 사용되는 요소들은 의미를 유지해야합니다. 
         - 영어로 작성된 코드는 원문을 유지합니다.
         - 입력 스키마와 출력 스키마의 구조(배열 개수 등)가 모두 일치해야합니다.
+        - 입력 데이터(요소)의 순서와 출력 데이터의 순서가 일치해야합니다.
+        
     """;
 
     @Override
@@ -63,7 +65,7 @@ public class LLMTranslationService implements TranslationService {
         try {
             String jsonText = objectMapper.writeValueAsString(object);
 
-            T result = llmService.generate(
+            return llmService.generate(
                     List.of(LLMMessage.builder()
                             .role(LLMMessage.Role.USER)
                             .text(jsonText)
@@ -74,8 +76,6 @@ public class LLMTranslationService implements TranslationService {
                             .thinking(LLMConfig.ThinkingMode.no)
                             .build()
             );
-            log.info("translation result: {}", result);
-            return result;
         } catch (JsonProcessingException e) {
             throw new RuntimeException("객체를 JSON으로 변환하는 중 오류가 발생했습니다.", e);
         }

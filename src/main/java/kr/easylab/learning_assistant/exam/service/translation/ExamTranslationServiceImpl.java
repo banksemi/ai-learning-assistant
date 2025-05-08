@@ -9,7 +9,9 @@ import kr.easylab.learning_assistant.translation.dto.Language;
 import kr.easylab.learning_assistant.translation.service.TranslationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,7 +22,6 @@ import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 @Slf4j
 @Qualifier("translation-service-base")
 public class ExamTranslationServiceImpl implements ExamTranslationService {
@@ -37,7 +38,7 @@ public class ExamTranslationServiceImpl implements ExamTranslationService {
 
         ExamTranslationRequest request = ExamTranslationRequest.builder()
                 .title(title)
-                .answers(answers.stream().map(Answer::getText).toList())
+                .options(answers.stream().map(Answer::getText).toList())
                 .explanation(examQuestion.getQuestion().getExplanation())
                 .build();
 
@@ -47,7 +48,7 @@ public class ExamTranslationServiceImpl implements ExamTranslationService {
         Map<Long, String> translatedAnswers = IntStream.range(0, answers.size())
                 .mapToObj(index -> Map.entry(
                         answers.get(index).getId(),
-                        translated.getAnswers().get(index)
+                        translated.getOptions().get(index)
                 ))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 

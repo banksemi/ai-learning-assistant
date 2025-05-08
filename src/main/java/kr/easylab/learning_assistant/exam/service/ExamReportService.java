@@ -14,12 +14,14 @@ import kr.easylab.learning_assistant.question.entity.Question;
 import kr.easylab.learning_assistant.question.service.QuestionBankService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ExamReportService {
     private final ExamQuestionMapper examQuestionMapper;
     private final ExamRepository examRepository;

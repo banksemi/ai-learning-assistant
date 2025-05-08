@@ -5,6 +5,7 @@ import kr.easylab.learning_assistant.exam.dto.ExamTranslationResponse;
 import kr.easylab.learning_assistant.exam.dto.Option;
 import kr.easylab.learning_assistant.exam.entity.ExamQuestion;
 import kr.easylab.learning_assistant.exam.service.translation.ExamTranslationPredictiveService;
+import kr.easylab.learning_assistant.exam.service.translation.ExamTranslationService;
 import kr.easylab.learning_assistant.question.entity.Answer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,7 +19,7 @@ import java.util.stream.IntStream;
 @Service
 @RequiredArgsConstructor
 public class ExamQuestionMapper {
-    private final ExamTranslationPredictiveService examQuestionTranslationService;
+    private final ExamTranslationService examTranslationService;
 
     public ExamQuestionResponse mapToDto(ExamQuestion examQuestion) {
         // 복사본을 사용하여 원본 엔티티 순서에 영향이 가지 않도록 함.
@@ -33,7 +34,7 @@ public class ExamQuestionMapper {
 
         Collections.shuffle(answerList, random);
 
-        ExamTranslationResponse translation = examQuestionTranslationService.translate(
+        ExamTranslationResponse translation = examTranslationService.translate(
                 examQuestion.getExam().getId(),
                 examQuestion.getNo()
         );

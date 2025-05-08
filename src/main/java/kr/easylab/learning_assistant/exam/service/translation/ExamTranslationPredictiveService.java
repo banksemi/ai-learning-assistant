@@ -22,7 +22,6 @@ import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 @Slf4j
 @Primary
 public class ExamTranslationPredictiveService implements ExamTranslationService {
@@ -38,12 +37,12 @@ public class ExamTranslationPredictiveService implements ExamTranslationService 
 
     @Cacheable(value = "exam-translation", sync=true)
     public ExamTranslationResponse performSingleTranslation(Long examId, Long no) {
-            return examTranslationService.translate(examId,no);
+            return examTranslationService.translate(examId, no);
     }
 
     @Async
     protected CompletableFuture<ExamTranslationResponse> asyncTranslate(Long examId, Long no) {
-        return CompletableFuture.completedFuture(self.performSingleTranslation(examId,no));
+        return CompletableFuture.completedFuture(self.performSingleTranslation(examId, no));
     }
 
     public ExamTranslationResponse translate(Long examId, Long no) {
