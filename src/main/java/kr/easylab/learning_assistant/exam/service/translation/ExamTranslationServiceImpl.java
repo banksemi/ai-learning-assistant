@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,7 @@ public class ExamTranslationServiceImpl implements ExamTranslationService {
     private final TranslationService translationService;
     private final ExamRepository examRepository;
 
+    @Cacheable(value = "exam-translation", sync=true)
     public ExamTranslationResponse translate(Long examId, Long no) {
         ExamQuestion examQuestion = examRepository.findQuestion(examId, no);
         if (examQuestion == null)

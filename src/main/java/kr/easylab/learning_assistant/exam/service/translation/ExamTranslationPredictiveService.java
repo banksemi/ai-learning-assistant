@@ -14,6 +14,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -25,32 +26,17 @@ import java.util.stream.IntStream;
 @Slf4j
 @Primary
 public class ExamTranslationPredictiveService implements ExamTranslationService {
-    @Autowired
-    @Lazy
-    private ExamTranslationPredictiveService self;
-
     @Value( "${translation.prediction_count}")
     private int predictionCount;
 
-    @Qualifier("translation-service-base")
-    private final ExamTranslationService examTranslationService;
+    private final ExamTranslationAsyncService examTranslationAsyncService;
 
-    @Cacheable(value = "exam-translation", sync=true)
-    public ExamTranslationResponse performSingleTranslation(Long examId, Long no) {
-            return examTranslationService.translate(examId, no);
-    }
-
-    @Async
-    protected CompletableFuture<ExamTranslationResponse> asyncTranslate(Long examId, Long no) {
-        return CompletableFuture.completedFuture(self.performSingleTranslation(examId, no));
-    }
 
     public ExamTranslationResponse translate(Long examId, Long no) {
-        CompletableFuture<ExamTranslationResponse> future = self.asyncTranslate(examId, no);
-        for (int i = 0; i < predictionCount; i++) {
-            self.asyncTranslate(examId, no + i + 1);
+        List<CompletableFuture<ExamTranslationResponse>> tasks = new ArrayList<>();
+        for (int i = 0; i < predictionCount + 1; i++) {
+            tasks.add(examTranslationAsyncService.translate(examId, no + i));
         }
-
-        return future.join();
+        return tasks.getFirst().join();
     }
 }
