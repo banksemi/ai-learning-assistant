@@ -76,7 +76,7 @@ public class ExamQuestionMapper {
     public String mapToString(ExamQuestion examQuestion) {
         ExamQuestionResponse examQuestionResponse = mapToDto(examQuestion);
         StringBuilder sb = new StringBuilder();
-        sb.append("## 문제 ").append(examQuestion.getNo()).append(" ").append(examQuestion.getCorrect() ? "(정답)" : "(틀림)").append("\n");
+        sb.append("## 문제 ").append(examQuestion.getNo() + 1).append(" ").append(examQuestion.getCorrect() ? "(정답)" : "(틀림)").append("\n");
         sb.append(examQuestionResponse.getTitle()).append("\n");
         sb.append("### 보기\n").append(formatOptions(examQuestionResponse.getOptions())).append("\n");
         sb.append("### 실제 정답\n").append(formatAnswers(examQuestionResponse.getActualAnswers())).append("\n");
