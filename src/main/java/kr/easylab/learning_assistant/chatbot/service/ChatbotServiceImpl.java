@@ -19,13 +19,16 @@ import java.util.List;
 
 @Service
 @Transactional
-@RequiredArgsConstructor
 public class ChatbotServiceImpl implements ChatbotService {
     private final ChatbotRepository chatbotRepository;
     private final LLMService llmService;
-    @Autowired
-    @Lazy
-    private ChatbotServiceImpl self;
+
+    private final ChatbotServiceImpl self;
+    public ChatbotServiceImpl(ChatbotRepository chatbotRepository, LLMService llmService, @Lazy ChatbotServiceImpl self) {
+        this.chatbotRepository = chatbotRepository;
+        this.llmService = llmService;
+        this.self = self;
+    }
 
     private List<LLMMessage> getMessages(Long chatbotId) {
         return chatbotRepository.findChatbotMessagesByChatbotId(chatbotId, 20L)
