@@ -73,7 +73,7 @@ public class LLMTranslationService implements TranslationService {
                     clazz,
                     LLMConfig.builder()
                             .prompt(prompt + "# 목표 언어: \n" + language)
-                            .thinking(LLMConfig.ThinkingMode.no)
+                            .thinking(LLMConfig.ThinkingMode.yes)
                             .build()
             );
         } catch (JsonProcessingException e) {
