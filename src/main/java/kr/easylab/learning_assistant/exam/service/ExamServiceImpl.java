@@ -1,6 +1,7 @@
 package kr.easylab.learning_assistant.exam.service;
 
 import kr.easylab.learning_assistant.exam.dto.*;
+import kr.easylab.learning_assistant.translation.dto.Language;
 import kr.easylab.learning_assistant.exam.entity.Exam;
 import kr.easylab.learning_assistant.exam.entity.ExamQuestion;
 import kr.easylab.learning_assistant.exam.exception.NotFoundExam;
@@ -9,6 +10,8 @@ import kr.easylab.learning_assistant.exam.repository.ExamRepository;
 import kr.easylab.learning_assistant.exam.service.translation.ExamTranslationPredictiveService;
 import kr.easylab.learning_assistant.question.entity.Question;
 import kr.easylab.learning_assistant.question.service.QuestionBankService;
+import kr.easylab.learning_assistant.translation.dto.Language;
+import kr.easylab.learning_assistant.translation.dto.Language;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -32,8 +35,12 @@ public class ExamServiceImpl implements ExamService {
         );
 
         List<ExamQuestion> examQuestions = new ArrayList<>();
+
+        // Convert language string to Language enum
+        Language language = Language.fromCode(request.getLanguage());
+
         Exam exam = Exam.builder()
-                .language(request.getLanguage())
+                .language(language)
                 .examQuestions(examQuestions)
                 .randomSeed(new Random().nextLong())
                 .questionBank(questions.getFirst().getQuestionBank())

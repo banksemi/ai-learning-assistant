@@ -35,6 +35,8 @@ public class ExamTranslationServiceImpl implements ExamTranslationService {
         if (examQuestion == null)
             return null;
 
+        Language targetLanguage = examQuestion.getExam().getLanguage();
+
         String title = examQuestion.getQuestion().getTitle();
         List<Answer> answers = examQuestion.getQuestion().getAnswer();
 
@@ -45,7 +47,7 @@ public class ExamTranslationServiceImpl implements ExamTranslationService {
                 .build();
 
 
-        ExamTranslationRequest translated = translationService.translate(request, Language.KOREAN, ExamTranslationRequest.class);
+        ExamTranslationRequest translated = translationService.translate(request, targetLanguage, ExamTranslationRequest.class);
 
         Map<Long, String> translatedAnswers = IntStream.range(0, answers.size())
                 .mapToObj(index -> Map.entry(

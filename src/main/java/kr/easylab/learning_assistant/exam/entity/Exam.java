@@ -3,6 +3,7 @@ package kr.easylab.learning_assistant.exam.entity;
 import jakarta.persistence.*;
 import kr.easylab.learning_assistant.chatbot.entity.Chatbot;
 import kr.easylab.learning_assistant.question.entity.QuestionBank;
+import kr.easylab.learning_assistant.translation.dto.Language;
 import lombok.*;
 import org.hibernate.annotations.BatchSize;
 
@@ -21,7 +22,8 @@ public class Exam {
     private Long id;
 
     @Column(nullable = false)
-    private String language;
+    @Enumerated(EnumType.STRING)
+    private Language language;
 
     @Column(nullable = false)
     private Long randomSeed;
