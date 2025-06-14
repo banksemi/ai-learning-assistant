@@ -19,9 +19,9 @@ services:
     image: postgres:17
     restart: always
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: learning_assistant_db
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
       TZ: Asia/Seoul
     ports:
       - "127.0.0.1:5432:5432"
