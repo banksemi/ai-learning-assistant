@@ -38,3 +38,7 @@ out/
 
 ### Python ###
 *.pyc
+
+
+### Env file ###
+.env
