@@ -100,7 +100,11 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
   const [result, setResult] = useState<QuizResult | null>(null);
   const [isQuizFinished, setIsQuizFinished] = useState<boolean>(false);
-  const [language, setLanguageState] = useState<Language>('ko');
+  const [language, setLanguageState] = useState<Language>(() => {
+    // Get language from localStorage or default to 'en'
+    const savedLanguage = localStorage.getItem('preferredLanguage');
+    return (savedLanguage as Language) || 'en';
+  });
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   // Ref to store the current EventSource instance for chat
@@ -193,6 +197,8 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [totalQuestions, finishQuiz]);
 
   const setLanguage = useCallback((lang: Language) => {
+    // Store language preference in localStorage
+    localStorage.setItem('preferredLanguage', lang);
     setLanguageState(lang);
     if (settings) {
       setSettingsState({ ...settings, language: lang });
@@ -355,7 +361,7 @@ export const QuizProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUserAnswers([]);
     setResult(null);
     setIsQuizFinished(false);
-    setLanguageState('ko');
+    // Don't reset language state to preserve user preference
     setIsLoading(false);
     setError(null);
     navigate('/');
