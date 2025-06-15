@@ -31,6 +31,14 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ language, onLanguag
           {/* Reverted Label styling */}
           <Label htmlFor="lang-en" className="font-normal">English</Label>
         </div>
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem value="ja" id="lang-ja" />
+          <Label htmlFor="lang-ja" className="font-normal">日本語</Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem value="zh" id="lang-zh" />
+          <Label htmlFor="lang-zh" className="font-normal">中文</Label>
+        </div>
       </RadioGroup>
     </div>
   );

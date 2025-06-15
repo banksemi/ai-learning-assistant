@@ -1,6 +1,7 @@
 import React from 'react';
 import QuizProgressBar from '@/components/quiz/QuizProgressBar';
 import { Language } from '@/types';
+import { useTranslation } from '@/translations';
 // Removed Skeleton import as it's no longer used here
 // import { Skeleton } from '@/components/ui/skeleton';
 
@@ -19,6 +20,7 @@ const QuizFixedHeader: React.FC<QuizFixedHeaderProps> = ({
   language,
   // isLoading prop is received but not used for bank name skeleton anymore
 }) => {
+  const { t } = useTranslation();
   return (
     // Outer div: Change sticky to fixed, ensure full width, top-0, z-index
     <div
@@ -32,7 +34,7 @@ const QuizFixedHeader: React.FC<QuizFixedHeaderProps> = ({
           className="text-sm truncate w-full text-center text-secondary-foreground font-medium" // Changed text-base to text-sm
           title={selectedBankName ?? ''}
         >
-          {selectedBankName || (language === 'ko' ? '문제 은행' : 'Question Bank')} {/* Fallback text */}
+          {selectedBankName || t('home.questionBank')} {/* Fallback text */}
         </span>
         {/* Progress Bar Container - Now inside the constrained width div */}
         <div className="w-full mb-1"> {/* Keep mb-1 */}

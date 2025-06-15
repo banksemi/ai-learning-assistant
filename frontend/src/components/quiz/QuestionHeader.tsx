@@ -4,6 +4,7 @@ import { Bookmark } from 'lucide-react';
 import { Language } from '@/types';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton'; // Import Skeleton
+import { useTranslation } from '@/translations';
 
 interface QuestionHeaderProps {
   currentQuestionIndex: number;
@@ -22,11 +23,13 @@ const QuestionHeader: React.FC<QuestionHeaderProps> = ({
   isMarked,
   isLoading, // Use isLoading prop
 }) => {
+  const { t } = useTranslation();
+
   return (
     <div className="flex justify-between items-center mb-3">
       {/* Question number is always visible */}
       <h2 className="text-lg font-semibold text-foreground">
-        {language === 'ko' ? `문제 ${currentQuestionIndex + 1} / ${totalQuestions}` : `Question ${currentQuestionIndex + 1} of ${totalQuestions}`}
+        {t('quiz.questionNumbering', { current: currentQuestionIndex + 1, total: totalQuestions })}
       </h2>
 
       {/* Conditionally render Skeleton or Button for bookmark */}
@@ -51,7 +54,7 @@ const QuestionHeader: React.FC<QuestionHeaderProps> = ({
               isMarked ? "fill-primary" : "" // Apply fill only when marked
             )}
           />
-          <span className="sr-only">{isMarked ? (language === 'ko' ? '표시 해제' : 'Unmark') : (language === 'ko' ? '표시하기' : 'Mark')}</span>
+          <span className="sr-only">{isMarked ? t('quiz.unmark') : t('quiz.mark')}</span>
         </Button>
       )}
     </div>

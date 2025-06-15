@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Language } from '@/types';
+import { useTranslation } from '@/translations';
 
 interface CircularScoreDisplayProps {
   score: number;
@@ -20,6 +21,7 @@ const CircularScoreDisplay: React.FC<CircularScoreDisplayProps> = ({
   totalQuestions,
   correctCount,
 }) => {
+  const { t } = useTranslation();
   // State for the displayed integer score
   const [displayScore, setDisplayScore] = useState(0);
   // State for the internal float score used for circle animation
@@ -110,12 +112,12 @@ const CircularScoreDisplay: React.FC<CircularScoreDisplayProps> = ({
            {/* Text displays the floored integer score */}
            <span className="text-4xl font-bold text-primary">{displayScore}%</span>
            <p className="text-sm text-muted-foreground mt-1">
-               {language === 'ko' ? '정확도' : 'Accuracy'}
+               {t('results.accuracy')}
            </p>
         </div>
       </div>
        <p className="text-sm text-muted-foreground mt-4">
-            {language === 'ko' ? `총 ${totalQuestions}문제 중 ${correctCount}개 정답` : `Answered ${correctCount} out of ${totalQuestions} correctly`}
+            {t('results.answeredCorrectly', { correct: correctCount, total: totalQuestions })}
        </p>
     </div>
   );

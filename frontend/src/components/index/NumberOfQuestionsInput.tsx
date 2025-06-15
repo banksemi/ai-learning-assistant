@@ -2,6 +2,7 @@ import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Language } from '@/types';
+import { useTranslation } from '@/translations';
 
 interface NumberOfQuestionsInputProps {
   numQuestions: number;
@@ -16,6 +17,7 @@ const NumberOfQuestionsInput: React.FC<NumberOfQuestionsInputProps> = ({
     language,
     maxQuestions
 }) => {
+  const { t } = useTranslation();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value, 10);
@@ -33,10 +35,10 @@ const NumberOfQuestionsInput: React.FC<NumberOfQuestionsInputProps> = ({
     }
   };
 
-  const placeholderText = language === 'ko' ? '숫자 입력 (예: 10)' : 'Enter number (e.g., 10)';
-  const labelText = language === 'ko' ? '문제 수' : 'Number of Questions';
+  const placeholderText = t('home.enterNumber');
+  const labelText = t('home.numberOfQuestions');
   // Helper text showing the maximum allowed questions
-  const maxQuestionsText = language === 'ko' ? `(최대: ${maxQuestions}개)` : `(Max: ${maxQuestions})`;
+  const maxQuestionsText = `(${t('home.max')}: ${maxQuestions})`;
 
   return (
     <div className="space-y-2 w-full">

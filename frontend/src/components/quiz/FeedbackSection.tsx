@@ -3,6 +3,7 @@ import MarkdownRenderer from '@/components/MarkdownRenderer'; // 공통 Markdown
 import { cn } from '@/lib/utils';
 import { AlertCircle, CheckCircle } from 'lucide-react';
 import { Language } from '@/types';
+import { useTranslation } from '@/translations';
 
 interface FeedbackSectionProps {
   showFeedback: boolean;
@@ -12,6 +13,7 @@ interface FeedbackSectionProps {
 }
 
 const FeedbackSection: React.FC<FeedbackSectionProps> = ({ showFeedback, isCorrect, explanationText, language }) => {
+  const { t } = useTranslation();
   if (!showFeedback) return null;
 
   return (
@@ -21,7 +23,7 @@ const FeedbackSection: React.FC<FeedbackSectionProps> = ({ showFeedback, isCorre
     )}>
       <div className="feedback-alert-title">
         {isCorrect ? <CheckCircle className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
-        <span>{isCorrect ? (language === 'ko' ? '정답입니다!' : 'Correct!') : (language === 'ko' ? '오답입니다' : 'Incorrect')}</span>
+        <span>{isCorrect ? t('questionReview.correct') : t('questionReview.incorrect')}</span>
       </div>
       <div className="feedback-alert-description">
         {/* MarkdownRenderer 사용 */}

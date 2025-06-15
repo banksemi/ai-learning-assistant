@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import QuizFixedHeader from '@/components/quiz/QuizFixedHeader'; // Import the fixed header component
+import { useTranslation } from '@/translations';
 
 // Skeleton Card Component (Extracted for clarity)
 const SkeletonQuizCard = ({ currentQuestionIndex, totalQuestions, language }: { currentQuestionIndex: number, totalQuestions: number, language: string }) => (
@@ -140,6 +141,7 @@ const QuizPage = () => {
     selectedBankName, // Get selected bank name from context
     // fetchPresetMessages, // REMOVED: No longer needed from context
   } = useQuiz();
+  const { t } = useTranslation();
 
   // Local UI state remains the same
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
@@ -184,11 +186,11 @@ const QuizPage = () => {
 
   const handleSubmit = useCallback(async () => {
     if (!currentQuestion) {
-        toast.error(language === 'ko' ? "현재 질문 정보를 찾을 수 없습니다." : "Cannot find current question information.");
-        return;
+      toast.error(t('quiz.errorLoadingQuestion'));
+      return;
     }
     if (selectedOptions.length === 0) {
-      toast.warning(language === 'ko' ? "답변을 선택해주세요." : "Please select an answer.");
+      toast.warning(t('quiz.pleaseSelectAnswer'));
       return;
     }
     setIsSubmitting(true);
@@ -203,7 +205,7 @@ const QuizPage = () => {
         setShowFeedback(true);
         setIsAnswerSubmitted(true);
       } else {
-        toast.error(language === 'ko' ? "답변 제출 중 오류 발생" : "Error submitting answer");
+        toast.error(t('quiz.errorSubmittingAnswer'));
         setIsAnswerSubmitted(false);
       }
     } catch (err) {
@@ -295,28 +297,28 @@ const QuizPage = () => {
             <div className="flex flex-col items-center justify-center p-4 text-center h-full"> {/* Added h-full for vertical centering within flex-grow */}
               <Alert variant="destructive" className="max-w-md mb-4">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>{language === 'ko' ? '오류 발생' : 'An Error Occurred'}</AlertTitle>
+                <AlertTitle>{t('quiz.errorOccurred')}</AlertTitle>
                 <AlertDescription>
                   {error}
                   <br />
-                  {language === 'ko' ? '문제를 로드하거나 제출하는 중 문제가 발생했습니다.' : 'There was a problem loading or submitting the question.'}
+                  {t('quiz.errorLoadingOrSubmitting')}
                 </AlertDescription>
               </Alert>
               <Button onClick={resetQuiz} variant="outline">
-                {language === 'ko' ? '설정으로 돌아가기' : 'Back to Settings'}
+                {t('quiz.backToSettings')}
               </Button>
             </div>
           ) : !currentQuestion ? (
             <div className="flex flex-col items-center justify-center p-4 text-center h-full"> {/* Added h-full */}
               <Alert variant="destructive" className="max-w-md mb-4">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>{language === 'ko' ? '질문 없음' : 'No Question Found'}</AlertTitle>
+                  <AlertTitle>{t('quiz.noQuestionFound')}</AlertTitle>
                   <AlertDescription>
-                      {language === 'ko' ? '현재 질문 데이터를 찾을 수 없습니다. 다시 시도해주세요.' : 'Could not find the current question data. Please try again.'}
+                      {t('quiz.couldNotFindQuestion')}
                   </AlertDescription>
               </Alert>
               <Button onClick={resetQuiz} variant="outline">
-                {language === 'ko' ? '설정으로 돌아가기' : 'Back to Settings'}
+                {t('quiz.backToSettings')}
               </Button>
             </div>
           ) : (

@@ -18,7 +18,16 @@ interface LanguageDropdownProps {
 }
 
 const LanguageDropdown: React.FC<LanguageDropdownProps> = ({ language, onLanguageChange }) => {
-  const displayLanguage = language === 'ko' ? '한국어' : 'English';
+  const getDisplayLanguage = () => {
+    switch (language) {
+      case 'ko': return '한국어';
+      case 'ja': return '日本語';
+      case 'zh': return '中文';
+      default: return 'English';
+    }
+  };
+
+  const displayLanguage = getDisplayLanguage();
 
   return (
     <DropdownMenu>
@@ -34,6 +43,8 @@ const LanguageDropdown: React.FC<LanguageDropdownProps> = ({ language, onLanguag
         <DropdownMenuRadioGroup value={language} onValueChange={(value) => onLanguageChange(value as Language)}>
           <DropdownMenuRadioItem value="ko">한국어</DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="en">English</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="ja">日本語</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="zh">中文</DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -9,10 +9,12 @@ import AiFeedback from '@/components/results/AiFeedback';
 import IncorrectQuestionsReview from '@/components/results/IncorrectQuestionsReview';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // For error display
 import { Separator } from '@/components/ui/separator'; // Import Separator
+import { useTranslation } from '@/translations';
 
 const ResultsPage = () => {
   // Get result, resetQuiz, language, and original questions list from context
   const { result, resetQuiz, language, questions, error, isLoading } = useQuiz();
+  const { t } = useTranslation();
   const [mainCardVisible, setMainCardVisible] = useState(false);
   const [scoreVisible, setScoreVisible] = useState(false);
   const [aiFeedbackVisible, setAiFeedbackVisible] = useState(false);
@@ -53,15 +55,15 @@ const ResultsPage = () => {
       <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center bg-background">
         <Alert variant="destructive" className="max-w-md mb-4">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>{language === 'ko' ? '오류 발생' : 'An Error Occurred'}</AlertTitle>
+          <AlertTitle>{t('results.errorOccurred')}</AlertTitle>
           <AlertDescription>
             {error}
             <br />
-            {language === 'ko' ? '결과를 불러오는 중 문제가 발생했습니다.' : 'There was a problem loading the results.'}
+            {t('results.errorLoadingResults')}
           </AlertDescription>
         </Alert>
         <Button onClick={resetQuiz} variant="outline">
-          {language === 'ko' ? '홈으로 돌아가기' : 'Back to Home'}
+          {t('results.backToHome')}
         </Button>
       </div>
     );
@@ -73,13 +75,13 @@ const ResultsPage = () => {
       <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center bg-background">
         <Alert variant="destructive" className="max-w-md mb-4">
            <AlertCircle className="h-4 w-4" />
-           <AlertTitle>{language === 'ko' ? '결과 없음' : 'No Results Found'}</AlertTitle>
+           <AlertTitle>{t('results.noResultsFound')}</AlertTitle>
            <AlertDescription>
-               {language === 'ko' ? '퀴즈 결과를 찾을 수 없습니다. 다시 시도해주세요.' : 'Could not find quiz results. Please try again.'}
+               {t('results.couldNotFindResults')}
            </AlertDescription>
         </Alert>
         <Button onClick={resetQuiz} variant="outline">
-          {language === 'ko' ? '홈으로 돌아가기' : 'Back to Home'}
+          {t('results.backToHome')}
         </Button>
       </div>
     );
@@ -107,11 +109,11 @@ const ResultsPage = () => {
         <div className="overflow-hidden">
             <CardHeader className="text-center pt-8 pb-4">
                 <CardTitle className="text-3xl font-bold mb-2 text-primary">
-                    {language === 'ko' ? '퀴즈 결과' : 'Quiz Results'}
+                    {t('results.title')}
                 </CardTitle>
                 <CardDescription className="text-lg text-muted-foreground flex items-center justify-center gap-2">
                     <Trophy className="w-5 h-5 text-yellow-500" />
-                    {language === 'ko' ? '축하합니다! 모든 문제를 완료했습니다.' : 'Congratulations! You have completed all questions.'}
+                    {t('results.congratulations')}
                 </CardDescription>
             </CardHeader>
 
@@ -146,7 +148,7 @@ const ResultsPage = () => {
               {/* <div className="flex items-center gap-3 mb-4">
                   <BookOpenCheck className="w-6 h-6 text-primary" />
                   <h2 className="text-2xl font-semibold text-foreground">
-                      {language === 'ko' ? '오답 및 표시된 문제 검토' : 'Review Incorrect & Marked Questions'}
+                      {t('results.reviewIncorrectAndMarked')}
                   </h2>
               </div> */}
               <Separator className="mb-6" /> {/* Keep the separator */}
@@ -166,7 +168,7 @@ const ResultsPage = () => {
           mainCardVisible ? "opacity-100" : "opacity-0"
       )}>
         <Button onClick={resetQuiz} variant="default" size="lg">
-          {language === 'ko' ? '새 퀴즈 시작하기' : 'Start New Quiz'}
+          {t('results.startNewQuiz')}
         </Button>
       </div>
     </div>

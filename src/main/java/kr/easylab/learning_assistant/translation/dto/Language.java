@@ -4,7 +4,9 @@ public enum Language {
     ENGLISH("en"),
     KOREAN("ko"),
     SPANISH("es"),
-    FRENCH("fr");
+    FRENCH("fr"),
+    JAPANESE("ja"),
+    CHINESE("zh");
 
     private final String code;
 

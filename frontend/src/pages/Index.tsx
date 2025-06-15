@@ -12,6 +12,7 @@ import { AlertCircle, Upload, Download } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import AdminUploadDialog from '@/components/admin/AdminUploadDialog';
 import { toast } from "sonner";
+import { useTranslation } from '@/translations';
 
 // Define the interface for the BeforeInstallPromptEvent (use 'any' if type causes issues)
 interface BeforeInstallPromptEvent extends Event {
@@ -25,6 +26,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 const Index = () => {
   const { startQuiz, language, setLanguage, isLoading: isContextLoading, error: contextError, clearError } = useQuiz();
+  const { t } = useTranslation();
   const [availableBanks, setAvailableBanks] = useState<FrontendQuestionBank[]>([]);
   const [selectedBankId, setSelectedBankId] = useState<number | null>(null);
   const [numQuestions, setNumQuestions] = useState<number>(10);
@@ -69,7 +71,7 @@ const Index = () => {
   const handleInstallClick = async () => {
     if (!deferredPrompt) {
       // More specific message if prompt is unavailable
-      toast.info(language === 'ko' ? "앱 설치 프롬프트를 지금 사용할 수 없습니다. (이미 설치되었거나 지원되지 않는 브라우저일 수 있습니다.)" : "App install prompt not available right now. (May be already installed or unsupported browser.)");
+      toast.info(t('home.installPromptUnavailable'));
       console.log("Deferred prompt not available.");
       return;
     }
@@ -160,11 +162,11 @@ const Index = () => {
     e.preventDefault();
     if (clearError) clearError();
     if (selectedBankId === null) {
-        toast.warning(language === 'ko' ? "문제 은행을 선택해주세요." : "Please select a question bank.");
+        toast.warning(t('home.errorSelectQuestionBank'));
         return;
     }
     if (numQuestions <= 0 || numQuestions > maxQuestions) {
-      toast.error(language === 'ko' ? "유효한 문제 수를 선택해주세요." : "Please select a valid number of questions.");
+      toast.error(t('home.errorSelectValidNumber'));
       return;
     }
     const settings: QuizSettings = {
@@ -190,10 +192,10 @@ const Index = () => {
                // Disable the button if the prompt is not available
                disabled={!deferredPrompt}
                // Updated title attribute for better explanation
-               title={!deferredPrompt ? (language === 'ko' ? '앱 설치 프롬프트를 사용할 수 없습니다 (지원되지 않는 브라우저 또는 이미 설치됨). iPad/iPhone에서는 공유 > 홈 화면에 추가를 사용하세요.' : 'App install prompt not available (unsupported browser or already installed). On iPad/iPhone, use Share > Add to Home Screen.') : (language === 'ko' ? '앱 설치' : 'Install App')}
+               title={!deferredPrompt ? t('home.installPromptUnavailableDetailed') : t('home.installApp')}
            >
                <Download className="mr-1 h-3 w-3" />
-               앱 설치
+               {t('home.installApp')}
            </Button>
 
            <Button
@@ -202,13 +204,13 @@ const Index = () => {
                onClick={() => setIsAdminUploadOpen(true)}
            >
                <Upload className="mr-1 h-3 w-3" />
-               문제 업로드
+               {t('home.uploadQuestions')}
            </Button>
        </div>
 
       <Card className="w-full max-w-lg shadow-md rounded-lg animate-fade-in">
         <CardHeader className="flex flex-row items-center justify-between pt-6 pb-4 px-6 border-b">
-          <CardTitle className="text-xl font-semibold text-primary">퀴즈 설정</CardTitle>
+          <CardTitle className="text-xl font-semibold text-primary">{t('home.quizSettings')}</CardTitle>
           <LanguageDropdown language={language} onLanguageChange={setLanguage} />
         </CardHeader>
 
@@ -216,7 +218,7 @@ const Index = () => {
           <div className="p-6 pt-0">
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>{language === 'ko' ? '오류' : 'Error'}</AlertTitle>
+              <AlertTitle>{t('common.error')}</AlertTitle>
               <AlertDescription>{contextError}</AlertDescription>
             </Alert>
           </div>
@@ -232,7 +234,7 @@ const Index = () => {
             ) : errorLoadingBanks ? (
                <Alert variant="destructive">
                  <AlertCircle className="h-4 w-4" />
-                 <AlertTitle>{language === 'ko' ? '오류' : 'Error'}</AlertTitle>
+                 <AlertTitle>{t('common.error')}</AlertTitle>
                  <AlertDescription>{errorLoadingBanks}</AlertDescription>
                </Alert>
             ) : (
@@ -261,7 +263,7 @@ const Index = () => {
               disabled={isStartDisabled}
             >
               {isLoading && <span className="animate-spin mr-2">⏳</span>}
-              {language === 'ko' ? '퀴즈 시작' : 'Start Quiz'}
+              {t('home.startQuiz')}
             </Button>
           </CardFooter>
         </form>

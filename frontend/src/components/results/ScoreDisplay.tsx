@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Language } from '@/types';
+import { useTranslation } from '@/translations';
 
 // Animated score component (Internal to ScoreDisplay)
 const AnimatedScore: React.FC<{ targetScore: number }> = ({ targetScore }) => {
@@ -42,6 +43,7 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
   language,
   isVisible,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className={cn(
         "text-center p-6 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900",
@@ -49,11 +51,11 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4" // Control visibility
     )}>
         <p className="text-sm font-medium text-indigo-800 dark:text-indigo-200 mb-1">
-            {language === 'ko' ? '정확도' : 'Accuracy'}
+            {t('results.accuracy')}
         </p>
         <AnimatedScore targetScore={score} />
         <p className="text-sm text-indigo-600 dark:text-indigo-400 mt-1">
-            {language === 'ko' ? `총 ${totalQuestions}문제 중 ${correctCount}개 정답` : `Answered ${correctCount} out of ${totalQuestions} correctly`}
+            {t('results.answeredCorrectly', { correct: correctCount, total: totalQuestions })}
         </p>
     </div>
   );

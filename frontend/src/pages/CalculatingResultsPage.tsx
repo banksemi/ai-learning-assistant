@@ -3,11 +3,13 @@ import React, { useEffect } from 'react';
 // import { useNavigate } from 'react-router-dom';
 import { useQuiz } from '@/context/QuizContext';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from '@/translations';
 
 const CalculatingResultsPage: React.FC = () => {
   // Removed useNavigate hook
   // const navigate = useNavigate();
   const { language } = useQuiz();
+  const { t } = useTranslation();
 
   // Removed the useEffect hook that navigated after a timeout
   // useEffect(() => {
@@ -24,10 +26,10 @@ const CalculatingResultsPage: React.FC = () => {
     <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center bg-background">
       <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
       <h1 className="text-xl font-semibold text-foreground mb-2">
-        {language === 'ko' ? '결과 레포트를 생성중입니다!' : 'Generating learning feedback for you!'}
+        {t('results.generatingReport')}
       </h1>
       <p className="text-muted-foreground">
-        {language === 'ko' ? '잠시만 기다려 주세요.' : 'Please wait a moment.'}
+        {t('results.pleaseWait')}
       </p>
     </div>
   );

@@ -6,6 +6,7 @@ import CodeBlock from '@/components/CodeBlock';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { Language } from '@/types'; // Import Language type
+import { useTranslation } from '@/translations';
 
 // Define the message type expected by this component
 interface Message {
@@ -22,6 +23,8 @@ interface AiMessageRendererProps {
 }
 
 const AiMessageRenderer: React.FC<AiMessageRendererProps> = ({ message, isStreaming, language, speed }) => {
+  const { t } = useTranslation();
+
   const displayText = isStreaming && message.sender === 'ai'
     ? useTypingEffect(message.text, speed)
     : message.text;
@@ -34,7 +37,7 @@ const AiMessageRenderer: React.FC<AiMessageRendererProps> = ({ message, isStream
         <div className="flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           <span className="italic text-muted-foreground">
-            {language === 'ko' ? '답변 생성 중...' : 'Generating response...'}
+            {t('aiChat.generatingResponse')}
           </span>
         </div>
       ) : (

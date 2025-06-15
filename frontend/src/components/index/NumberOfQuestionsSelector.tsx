@@ -2,6 +2,7 @@ import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Language } from '@/types';
+import { useTranslation } from '@/translations';
 
 interface NumberOfQuestionsSelectorProps {
   numQuestions: number;
@@ -16,6 +17,7 @@ const NumberOfQuestionsSelector: React.FC<NumberOfQuestionsSelectorProps> = ({
     language,
     maxQuestions
 }) => {
+  const { t } = useTranslation();
   // Add 1 to the base options
   const baseOptions = [1, 5, 10, 20, 30, 65];
 
@@ -29,7 +31,7 @@ const NumberOfQuestionsSelector: React.FC<NumberOfQuestionsSelectorProps> = ({
   // Determine the final list of options for the dropdown
   const finalOptions: { value: number; label: string }[] = availableOptions.map(option => ({
     value: option,
-    label: language === 'ko' ? `${option}개` : `${option} questions`
+    label: `${option} ${t('home.questions')}`
   }));
 
   if (showAllOption) {
@@ -37,13 +39,13 @@ const NumberOfQuestionsSelector: React.FC<NumberOfQuestionsSelectorProps> = ({
     if (!availableOptions.includes(allOptionValue)) {
         finalOptions.push({
             value: allOptionValue,
-            label: language === 'ko' ? `전체 (${allOptionValue}개)` : `All (${allOptionValue} questions)`
+            label: `${t('home.all')} (${allOptionValue} ${t('home.questions')})`
         });
     } else {
          // If maxQuestions happens to be one of the base options, update that option's label
          const existingOptionIndex = finalOptions.findIndex(opt => opt.value === allOptionValue);
          if (existingOptionIndex > -1) {
-             finalOptions[existingOptionIndex].label = language === 'ko' ? `전체 (${allOptionValue}개)` : `All (${allOptionValue} questions)`;
+             finalOptions[existingOptionIndex].label = `${t('home.all')} (${allOptionValue} ${t('home.questions')})`;
          }
     }
   }
@@ -54,7 +56,7 @@ const NumberOfQuestionsSelector: React.FC<NumberOfQuestionsSelectorProps> = ({
       finalOptions.length = 0; // Clear any potentially added base options
       finalOptions.push({
           value: allOptionValue,
-          label: language === 'ko' ? `전체 (${allOptionValue}개)` : `All (${allOptionValue} questions)`
+          label: `${t('home.all')} (${allOptionValue} ${t('home.questions')})`
       });
   }
 
@@ -63,8 +65,8 @@ const NumberOfQuestionsSelector: React.FC<NumberOfQuestionsSelectorProps> = ({
     onNumQuestionsChange(Number(value));
   };
 
-  const labelText = language === 'ko' ? '문제 수 선택' : 'Select Number of Questions';
-  const placeholderText = language === 'ko' ? '문제 수 선택...' : 'Select number...';
+  const labelText = t('home.selectNumberOfQuestions');
+  const placeholderText = t('home.selectNumberOfQuestionsPlaceholder');
 
   return (
     <div className="space-y-2 w-full">
@@ -91,7 +93,7 @@ const NumberOfQuestionsSelector: React.FC<NumberOfQuestionsSelectorProps> = ({
           ) : (
             // Show a disabled item if no options are valid (e.g., maxQuestions is 0)
             <SelectItem value="no-options" disabled>
-              {language === 'ko' ? '선택 가능한 문제 수 없음' : 'No options available'}
+              {t('home.noOptionsAvailable')}
             </SelectItem>
           )}
         </SelectContent>

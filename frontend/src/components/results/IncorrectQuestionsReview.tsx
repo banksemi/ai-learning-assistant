@@ -5,6 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, Bookmark, XCircle, ChevronDown } from 'lucide-react';
 import MarkdownRenderer from '@/components/MarkdownRenderer'; // 공통 MarkdownRenderer 사용
+import { useTranslation } from '@/translations';
 
 interface IncorrectQuestionsReviewProps {
   language: Language;
@@ -22,6 +23,7 @@ const QuestionReviewCard: React.FC<{
 }> = ({
     question, originalIndex, language, itemType
 }) => {
+    const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const selectedOptionIds = question.userSelectedIds || [];
     const isUserAnswerCorrect = itemType === 'marked'
@@ -45,7 +47,7 @@ const QuestionReviewCard: React.FC<{
                             <div className="flex-1 space-y-1 pr-2">
                                 <CardTitle className="text-base font-semibold flex items-center">
                                     <span className="text-foreground">
-                                        {language === 'ko' ? `질문 ${originalIndex + 1}` : `Question ${originalIndex + 1}`}
+                                        {t('questionReview.question', { number: originalIndex + 1 })}
                                     </span>
                                 </CardTitle>
                                 <div className="pt-1 text-left">
@@ -70,7 +72,7 @@ const QuestionReviewCard: React.FC<{
                         {selectedOptionIds.length > 0 && (
                             <div className="space-y-2">
                                 <h4 className="font-semibold text-sm flex items-center gap-1 text-foreground">
-                                    {language === 'ko' ? '선택한 답:' : 'Your Answer:'}
+                                    {t('questionReview.yourAnswer')}
                                     {isUserAnswerCorrect ? (
                                         <CheckCircle className="h-4 w-4 text-green-600" />
                                     ) : (
@@ -100,16 +102,15 @@ const QuestionReviewCard: React.FC<{
                         )}
                         {selectedOptionIds.length === 0 && itemType === 'incorrect' && (
                             <div className="space-y-2">
-                                <h4 className="font-semibold text-sm text-red-600">{language === 'ko' ? '선택한 답:' : 'Your Answer:'}</h4>
-                                <p className="text-sm text-muted-foreground italic">{language === 'ko' ? '답변하지 않음' : 'Not answered'}</p>
+                                <h4 className="font-semibold text-sm text-red-600">{t('questionReview.yourAnswer')}</h4>
+                                <p className="text-sm text-muted-foreground italic">{t('questionReview.notAnswered')}</p>
                             </div>
                         )}
 
                         {(itemType === 'incorrect' || (itemType === 'marked' && !isUserAnswerCorrect)) && (
                             <div className="space-y-2">
                                 <h4 className="font-semibold text-sm flex items-center gap-1 text-foreground">
-                                    {language === 'ko' ? '정답:' : 'Correct Answer(s):'}
-                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                    {t('questionReview.correctAnswer')}
                                 </h4>
                                 {currentLangOptions
                                     .filter(opt => question.correctAnswerIds.includes(opt.id))
@@ -123,7 +124,7 @@ const QuestionReviewCard: React.FC<{
                         )}
 
                         <div>
-                            <h4 className="font-semibold text-sm text-foreground">{language === 'ko' ? '해설:' : 'Explanation:'}</h4>
+                            <h4 className="font-semibold text-sm text-foreground">{t('questionReview.explanation')}</h4>
                             <div className="mt-1">
                                 {/* MarkdownRenderer 사용, 해설 텍스트는 블록 스타일이 기본 적용됨 */}
                                 <MarkdownRenderer content={question.explanation} className="text-sm" />
@@ -144,6 +145,7 @@ const IncorrectQuestionsReview: React.FC<IncorrectQuestionsReviewProps> = ({
   questions,
   isVisible,
 }) => {
+  const { t } = useTranslation();
 
   const findOriginalQuestionIndex = (questionId: number): number => {
     if (!questions) return -1;
@@ -156,7 +158,7 @@ const IncorrectQuestionsReview: React.FC<IncorrectQuestionsReviewProps> = ({
             <div className="space-y-2 mb-6">
                 <h3 className="text-xl font-semibold flex items-center gap-2 text-foreground">
                     <Bookmark className="h-5 w-5 text-primary" />
-                    {language === 'ko' ? '표시된 문제' : 'Marked Questions'}
+                    {t('questionReview.markedQuestions')}
                 </h3>
                 <div className="space-y-4">
                     {markedQuestions.map((q) => {
@@ -179,7 +181,7 @@ const IncorrectQuestionsReview: React.FC<IncorrectQuestionsReviewProps> = ({
             <div className="space-y-2">
                 <h3 className="text-xl font-semibold flex items-center gap-2 text-foreground">
                     <XCircle className="h-5 w-5 text-destructive" />
-                    {language === 'ko' ? '오답 다시보기' : 'Review Incorrect Answers'}
+                    {t('questionReview.reviewIncorrectAnswers')}
                 </h3>
                  <div className="space-y-4">
                     {incorrectQuestions.map((q) => {
@@ -202,7 +204,7 @@ const IncorrectQuestionsReview: React.FC<IncorrectQuestionsReviewProps> = ({
             <div className="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-950/50 rounded-lg border border-green-200 dark:border-green-800">
                 <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400 flex-shrink-0" />
                 <p className="text-sm text-green-800 dark:text-green-200">
-                    {language === 'ko' ? '축하합니다! 모든 문제를 맞혔고 표시한 문제도 없습니다.' : 'Congratulations! You answered all questions correctly and marked none.'}
+                    {t('questionReview.congratsAllCorrect')}
                 </p>
             </div>
         )}
@@ -210,7 +212,7 @@ const IncorrectQuestionsReview: React.FC<IncorrectQuestionsReviewProps> = ({
             <div className="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-950/50 rounded-lg border border-blue-200 dark:border-blue-800">
                 <CheckCircle className="h-6 w-6 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                 <p className="text-sm text-blue-800 dark:text-blue-200">
-                    {language === 'ko' ? '모든 문제를 맞혔습니다! 위에서 표시한 문제를 검토할 수 있습니다.' : 'You answered all questions correctly! You can review your marked questions above.'}
+                    {t('questionReview.congratsAllCorrectWithMarked')}
                 </p>
             </div>
         )}

@@ -19,6 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useQuiz } from '@/context/QuizContext';
 import AiMessageRenderer from './AiMessageRenderer';
 import MarkdownRenderer from '@/components/MarkdownRenderer'; // 공통 MarkdownRenderer 사용
+import { useTranslation } from '@/translations';
 
 // Add an optional id field for tracking streaming messages
 interface StreamingChatMessage extends FrontendChatMessage {
@@ -44,6 +45,7 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({
     language,
 }) => {
   const { sendChatMessage, closeChatStream } = useQuiz();
+  const { t } = useTranslation();
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<StreamingChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -121,12 +123,12 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({
       },
       onError: (error) => {
         console.error("SSE Error:", error);
-        const errorText = typeof error === 'string' ? error : (language === 'ko' ? 'AI 채팅 중 오류가 발생했습니다.' : 'An error occurred during AI chat.');
-        toast.error(language === 'ko' ? 'AI 채팅 오류' : 'AI Chat Error', { description: errorText });
+        const errorText = typeof error === 'string' ? error : t('aiChat.errorMessage');
+        toast.error(t('aiChat.errorTitle'), { description: errorText });
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === currentAiMessageIdRef.current
-              ? { ...msg, text: `❌ ${language === 'ko' ? '오류 발생' : 'Error occurred'}` }
+              ? { ...msg, text: `❌ ${t('aiChat.errorOccurred')}` }
               : msg
           )
         );
@@ -195,7 +197,7 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({
       >
         <DialogHeader className="p-4 border-b flex-shrink-0">
           <DialogTitle className="flex items-center gap-2 text-base font-semibold">
-            {language === 'ko' ? 'AI에게 물어보기' : 'Ask AI'}
+            {t('aiChat.title')}
           </DialogTitle>
         </DialogHeader>
 
@@ -243,7 +245,7 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({
             <div className="px-4 pt-2 pb-1 border-t">
                 <h4 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
                     <HelpCircle className="h-3 w-3" />
-                    {language === 'ko' ? '추천 질문:' : 'Suggested Questions:'}
+                    {t('aiChat.suggestedQuestions')}
                 </h4>
                 {presetMessages === null ? (
                     <div className="flex flex-wrap gap-2 min-h-[2rem]" aria-busy="true" aria-live="polite">
@@ -271,7 +273,7 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({
                     </div>
                 ) : (
                     <p className="text-xs text-muted-foreground italic">
-                        {language === 'ko' ? '추천 질문이 없습니다.' : 'No suggested questions available.'}
+                        {t('aiChat.noSuggestedQuestions')}
                     </p>
                 )}
             </div>
@@ -283,7 +285,7 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({
             <Input
               ref={inputRef}
               type="text"
-              placeholder={language === 'ko' ? '메시지를 입력하세요...' : 'Type your message...'}
+              placeholder={t('aiChat.placeholder')}
               value={inputValue}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
@@ -298,7 +300,7 @@ const AiChatPopup: React.FC<AiChatPopupProps> = ({
               className="rounded-full bg-primary hover:bg-primary/90 flex items-center justify-center"
             >
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin text-primary-foreground" /> : <Send className="h-4 w-4 text-primary-foreground" />}
-              <span className="sr-only">{language === 'ko' ? '보내기' : 'Send'}</span>
+              <span className="sr-only">{t('aiChat.send')}</span>
             </Button>
           </div>
         </DialogFooter>

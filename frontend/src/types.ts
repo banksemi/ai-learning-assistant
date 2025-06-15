@@ -2,7 +2,7 @@ import { CheckCircle, XCircle } from "lucide-react";
 
 
 // Base Language Type
-export type Language = 'ko' | 'en';
+export type Language = 'ko' | 'en' | 'ja' | 'zh';
 
 // --- API Specific Response/Request Types ---
 

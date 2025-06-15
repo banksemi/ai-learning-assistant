@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from '@/components/ui/separator';
 import { MessageSquare, ArrowRight, Loader2 } from 'lucide-react'; // Import Loader2
 import { Language } from '@/types';
+import { useTranslation } from '@/translations';
 
 interface QuizFooterProps {
   language: Language;
@@ -17,7 +18,7 @@ interface QuizFooterProps {
 }
 
 const QuizFooter: React.FC<QuizFooterProps> = ({
-  language,
+  language, // Still need language prop for backward compatibility
   isAnswerSubmitted,
   isSubmitting, // Use isSubmitting prop
   selectedOptions,
@@ -27,6 +28,8 @@ const QuizFooter: React.FC<QuizFooterProps> = ({
   onNext,
   onAskAI,
 }) => {
+  // Use the translation hook
+  const { t } = useTranslation();
   return (
     <>
       <Separator />
@@ -42,7 +45,7 @@ const QuizFooter: React.FC<QuizFooterProps> = ({
               disabled={isSubmitting} // Disable Ask AI during submission (though unlikely to be visible)
             >
               <MessageSquare className="mr-2 h-4 w-4" />
-              {language === 'ko' ? 'AI에게 물어보기' : 'Ask AI'}
+              {t('quiz.askAI')}
             </Button>
           )}
           {/* Placeholder for layout consistency when button is hidden */}
@@ -63,7 +66,7 @@ const QuizFooter: React.FC<QuizFooterProps> = ({
             {isSubmitting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : null}
-            {language === 'ko' ? '제출' : 'Submit'}
+            {t('quiz.submitAnswer')}
           </Button>
         ) : (
           <Button
@@ -74,8 +77,8 @@ const QuizFooter: React.FC<QuizFooterProps> = ({
             disabled={isSubmitting}
           >
             {currentQuestionIndex < totalQuestions - 1
-              ? (language === 'ko' ? '다음 문제' : 'Next Question')
-              : (language === 'ko' ? '결과 보기' : 'Show Results')}
+              ? t('quiz.nextQuestion')
+              : t('quiz.showResults')}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         )}
