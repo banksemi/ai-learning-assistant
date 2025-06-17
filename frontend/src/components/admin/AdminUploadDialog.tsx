@@ -19,6 +19,7 @@ import { Loader2, AlertCircle, UploadCloud, PlusCircle, KeyRound, LogIn } from '
 import { toast } from "sonner";
 import * as api from '@/services/api';
 import { QuestionBank as FrontendQuestionBank } from '@/types'; // Use Frontend type
+import { useTranslation } from '@/translations';
 
 // Interface for the JSON structure provided by the user (remains the same)
 interface UserInputQuestion {
@@ -65,6 +66,7 @@ interface AdminUploadDialogProps {
 }
 
 const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenChange }) => {
+  const { t } = useTranslation(); // Add translation hook
   const [password, setPassword] = useState<string>('');
   const [validatedPassword, setValidatedPassword] = useState<string | null>(null); // Store validated password
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -99,12 +101,12 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
       setAvailableBanks(frontendBanks);
     } catch (err: any) {
       console.error("Failed to fetch question banks:", err);
-      setError(err.message || "Failed to load question banks.");
-      toast.error("문제 은행 로딩 실패", { description: err.message });
+      setError(err.message || t('admin.bankLoadingFailed'));
+      toast.error(t('admin.bankLoadingFailed'), { description: err.message });
     } finally {
       setIsLoadingBanks(false);
     }
-  }, [isAuthenticated]); // Depend on isAuthenticated
+  }, [isAuthenticated, t]); // Depend on isAuthenticated and t
 
   // Effect to fetch banks when authentication status changes to true
   useEffect(() => {
@@ -156,11 +158,11 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
           if (loginSuccess) {
               setIsAuthenticated(true);
               setValidatedPassword(currentPassword); // Store the validated password
-              toast.success("관리자 인증 성공!");
+              toast.success(t('admin.authSuccess'));
           } else {
               // This case might not be reached if loginAdmin throws an error on failure
               // setAuthError("인증에 실패했습니다. (알 수 없는 오류)"); // Removed
-              toast.error("인증 실패", { description: "알 수 없는 오류가 발생했습니다." });
+              toast.error(t('admin.authFailed'), { description: t('admin.authError') });
               setIsAuthenticated(false);
               setValidatedPassword(null);
           }
@@ -168,7 +170,7 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
           // Catch errors thrown by loginAdmin (e.g., "Invalid password.")
           console.error("Authentication failed:", err);
           // setAuthError(err.message || "인증 중 오류가 발생했습니다."); // Removed
-          toast.error("인증 실패", { description: err.message || "인증 중 오류가 발생했습니다." });
+          toast.error(t('admin.authFailed'), { description: err.message || t('admin.authErrorDuringProcess') });
           setIsAuthenticated(false);
           setValidatedPassword(null);
       } finally {
@@ -186,11 +188,11 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
 
   const handleCreateBank = async () => {
     if (!isAuthenticated || !validatedPassword) {
-        toast.error("인증이 필요합니다.");
+        toast.error(t('admin.authRequired'));
         return;
     }
     if (!newBankTitle.trim()) {
-      toast.warning("새 문제 은행 제목을 입력하세요.");
+      toast.warning(t('admin.enterBankTitle'));
       return;
     }
     setIsCreatingBank(true);
@@ -200,25 +202,25 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
       const createdBank = await api.createQuestionBankAdmin(newBankTitle.trim(), validatedPassword);
 
       if (createdBank && typeof createdBank.question_bank_id === 'number') {
-          toast.success(`문제 은행 "${newBankTitle}" 생성 완료!`);
+          toast.success(t('admin.bankCreationSuccess', { title: newBankTitle }));
           setNewBankTitle('');
           setSelectedBankId(String(createdBank.question_bank_id));
           await fetchBanks(); // Refresh list
       } else {
            console.error("API returned success status but missing or invalid data:", createdBank);
-           throw new Error("문제 은행 생성 응답이 없거나 형식이 잘못되었습니다.");
+           throw new Error(t('admin.bankCreationNoResponse'));
       }
     } catch (err: any) {
       console.error("Failed to create question bank:", err);
       // Handle specific auth error from API if needed
       if (err.message.includes("Authentication failed")) {
-          setError("인증 오류: API 호출 실패. 다시 인증해주세요.");
+          setError(t('admin.authErrorApiCall'));
           setIsAuthenticated(false); // Force re-authentication
           setValidatedPassword(null);
       } else {
-          setError(err.message || "Failed to create question bank.");
+          setError(err.message || t('admin.bankCreationFailed'));
       }
-      toast.error("문제 은행 생성 실패", { description: err.message });
+      toast.error(t('admin.bankCreationFailed'), { description: err.message });
     } finally {
       setIsCreatingBank(false);
     }
@@ -226,15 +228,15 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
 
   const handleUpload = async () => {
      if (!isAuthenticated || !validatedPassword) {
-        toast.error("인증이 필요합니다.");
+        toast.error(t('admin.authRequired'));
         return;
     }
     if (!selectedBankId) {
-      toast.warning("문제를 업로드할 문제 은행을 선택하세요.");
+      toast.warning(t('admin.selectBank'));
       return;
     }
     if (!jsonData.trim()) {
-      toast.warning("업로드할 질문 JSON 데이터를 입력하세요.");
+      toast.warning(t('admin.enterJsonData'));
       return;
     }
 
@@ -242,31 +244,31 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
     try {
       parsedData = JSON.parse(jsonData);
       if (!Array.isArray(parsedData)) {
-        throw new Error("JSON 데이터는 배열 형태여야 합니다.");
+        throw new Error(t('admin.jsonArrayRequired'));
       }
       // Add validation for the structure of each question object in the array
       parsedData.forEach((item, index) => {
           if (typeof item.question !== 'string' || !Array.isArray(item.answers) || typeof item.explain !== 'string') {
-              throw new Error(`JSON 배열의 ${index + 1}번째 항목 형식이 잘못되었습니다. 'question'(string), 'answers'(array), 'explain'(string) 필드가 필요합니다.`);
+              throw new Error(t('admin.jsonFormatError', { index: index + 1 }));
           }
           item.answers.forEach((answer, ansIndex) => {
               if (!Array.isArray(answer) || answer.length !== 2 || typeof answer[0] !== 'string' || typeof answer[1] !== 'boolean') {
-                  throw new Error(`JSON 배열의 ${index + 1}번째 항목의 ${ansIndex + 1}번째 'answers' 형식이 잘못되었습니다. [string, boolean] 형태여야 합니다.`);
+                  throw new Error(t('admin.jsonAnswerFormatError', { index: index + 1, ansIndex: ansIndex + 1 }));
               }
           });
       });
 
     } catch (err: any) {
       console.error("Invalid JSON data:", err);
-      setError(`잘못된 JSON 형식: ${err.message}`);
-      toast.error("JSON 파싱 또는 유효성 검사 오류", { description: `잘못된 JSON 형식: ${err.message}` });
+      setError(t('admin.jsonParsingError', { message: err.message }));
+      toast.error(t('admin.jsonParsingErrorTitle'), { description: t('admin.jsonParsingError', { message: err.message }) });
       return;
     }
 
     // Use the updated transform function (now includes explanation)
     const questionsToUpload = transformQuestionData(parsedData);
     if (questionsToUpload.length === 0) {
-        toast.warning("업로드할 질문이 없습니다.");
+        toast.warning(t('admin.noQuestionsToUpload'));
         return;
     }
 
@@ -290,8 +292,8 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
         // Check for auth error specifically
         if (err.message.includes("Authentication failed")) {
             authFailed = true;
-            setError("인증 오류: 업로드 중단됨. 다시 인증해주세요.");
-            toast.error("인증 오류", { description: "업로드가 중단되었습니다. 다시 인증해주세요." });
+            setError(t('admin.authErrorDuringUpload'));
+            toast.error(t('admin.authFailed'), { description: t('admin.authErrorDuringUpload') });
             setIsAuthenticated(false); // Force re-authentication
             setValidatedPassword(null);
             break; // Stop upload process
@@ -307,14 +309,14 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
 
     if (!authFailed) {
         if (errorCount === 0) {
-            toast.success(`총 ${successCount}개의 질문 업로드 완료!`);
+            toast.success(t('admin.uploadSuccess', { count: successCount }));
             setJsonData(''); // Clear JSON input on full success
             fetchBanks(); // Refresh bank list (updates question counts)
         } else {
-            toast.error(`${errorCount}개 질문 업로드 실패`, {
-                description: `총 ${totalToUpload}개 중 ${successCount}개 성공, ${errorCount}개 실패했습니다. 콘솔 로그를 확인하세요.`,
+            toast.error(t('admin.uploadPartialFailure', { errorCount }), {
+                description: t('admin.uploadPartialFailureDetail', { total: totalToUpload, success: successCount, error: errorCount }),
             });
-            setError(`${errorCount}개 질문 업로드 실패. 자세한 내용은 콘솔을 확인하세요.`);
+            setError(t('admin.uploadFailureConsole', { count: errorCount }));
             fetchBanks(); // Refresh counts even on partial failure
         }
     }
@@ -327,15 +329,15 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>관리자: 문제 업로드</DialogTitle>
+          <DialogTitle>{t('admin.title')}</DialogTitle>
           {!isAuthenticated && (
               <DialogDescription>
-                  관리자 기능을 사용하려면 비밀번호를 입력하세요.
+                  {t('admin.description')}
               </DialogDescription>
           )}
            {isAuthenticated && (
               <DialogDescription>
-                  새 문제 은행을 생성하거나 기존 은행을 선택하고, JSON 형식으로 질문을 대량 업로드합니다.
+                  {t('admin.authenticatedDescription')}
               </DialogDescription>
            )}
         </DialogHeader>
@@ -344,7 +346,7 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
         {!isAuthenticated && (
             // Removed border-b class from this div
             <div className="px-6 py-4 space-y-4">
-                 <Label htmlFor="admin-password">관리자 비밀번호</Label>
+                 <Label htmlFor="admin-password">{t('admin.password')}</Label>
                  <div className="flex items-center gap-2">
                      <Input
                          id="admin-password"
@@ -352,13 +354,13 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
                          value={password}
                          onChange={(e) => setPassword(e.target.value)}
                          onKeyDown={handlePasswordKeyDown}
-                         placeholder="비밀번호 입력"
+                         placeholder={t('admin.passwordPlaceholder')}
                          disabled={isAuthenticating}
                          className="flex-1"
                      />
                      <Button onClick={handleAuthenticate} disabled={isAuthenticating || !password}>
                          {isAuthenticating ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
-                         <span className="ml-2">인증</span>
+                         <span className="ml-2">{t('common.authenticate')}</span>
                      </Button>
                  </div>
                  {/* Removed Alert component for authError */}
@@ -373,7 +375,7 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
                 // Removed mx-6 class to fix overflow
                 <Alert variant="destructive" className="my-4">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>오류</AlertTitle>
+                    <AlertTitle>{t('common.error')}</AlertTitle>
                     <AlertDescription>{error}</AlertDescription>
                 </Alert>
                 )}
@@ -382,11 +384,11 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
                     <div className="grid gap-6 py-4">
                     {/* Bank Selection */}
                     <div className="space-y-2">
-                        <Label htmlFor="question-bank-select">1. 문제 은행 선택 또는 생성</Label>
+                        <Label htmlFor="question-bank-select">{t('admin.bankSelection')}</Label>
                         {isLoadingBanks ? (
                             <div className="flex items-center space-x-2">
                                 <Loader2 className="h-4 w-4 animate-spin" />
-                                <span>문제 은행 로딩 중...</span>
+                                <span>{t('admin.loadingBanks')}</span>
                             </div>
                         ) : (
                             <div className="flex flex-col sm:flex-row gap-2">
@@ -396,21 +398,21 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
                                     disabled={isLoading}
                                 >
                                     <SelectTrigger id="question-bank-select" className="flex-1">
-                                    <SelectValue placeholder="기존 문제 은행 선택..." />
+                                    <SelectValue placeholder={t('admin.selectExistingBank')} />
                                     </SelectTrigger>
                                     <SelectContent>
                                     {availableBanks.map((bank) => (
                                         <SelectItem key={bank.id} value={String(bank.id)}>
-                                        {bank.name} ({bank.questions} 문제)
+                                        {bank.name} ({bank.questions} {t('admin.questions')})
                                         </SelectItem>
                                     ))}
-                                    {availableBanks.length === 0 && <SelectItem value="nobanks" disabled>사용 가능한 문제 은행 없음</SelectItem>}
+                                    {availableBanks.length === 0 && <SelectItem value="nobanks" disabled>{t('admin.noBanksAvailable')}</SelectItem>}
                                     </SelectContent>
                                 </Select>
                                 <div className="flex items-center gap-2 mt-2 sm:mt-0">
                                     <Input
                                         id="new-bank-title"
-                                        placeholder="새 문제 은행 제목"
+                                        placeholder={t('admin.newBankTitle')}
                                         value={newBankTitle}
                                         onChange={(e) => setNewBankTitle(e.target.value)}
                                         className="flex-1"
@@ -418,7 +420,7 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
                                     />
                                     <Button onClick={handleCreateBank} disabled={isLoading || !newBankTitle.trim()} size="icon">
                                         {isCreatingBank ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlusCircle className="h-4 w-4" />}
-                                        <span className="sr-only">새 문제 은행 생성</span>
+                                        <span className="sr-only">{t('admin.createNewBank')}</span>
                                     </Button>
                                 </div>
                             </div>
@@ -427,11 +429,11 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
 
                     {/* JSON Input */}
                     <div className="space-y-2">
-                        <Label htmlFor="json-data">2. 질문 데이터 (JSON)</Label>
+                        <Label htmlFor="json-data">{t('admin.jsonData')}</Label>
                         <Textarea
                         id="json-data"
                         // Updated placeholder to reflect the expected user input format (including explain)
-                        placeholder='[{"question": "질문 내용...", "answers": [["정답 텍스트", true], ["오답 텍스트", false]], "explain": "해설 내용..."}, ...]'
+                        placeholder={t('admin.jsonPlaceholder')}
                         value={jsonData}
                         onChange={(e) => setJsonData(e.target.value)}
                         rows={10}
@@ -449,7 +451,7 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
                     {/* Upload Progress */}
                     {isUploading && (
                         <div className="space-y-1">
-                            <Label>업로드 진행률</Label>
+                            <Label>{t('admin.uploadProgress')}</Label>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <progress value={uploadProgress} max={totalToUpload} className="w-full h-2 [&::-webkit-progress-bar]:rounded-lg [&::-webkit-progress-value]:rounded-lg   [&::-webkit-progress-bar]:bg-slate-300 [&::-webkit-progress-value]:bg-primary [&::-moz-progress-bar]:bg-primary" />
                                 <span>{uploadProgress} / {totalToUpload}</span>
@@ -462,7 +464,7 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
                 <DialogFooter className="px-6 pb-6 pt-4 border-t">
                     <DialogClose asChild>
                         <Button type="button" variant="outline" disabled={isLoading}>
-                        취소
+                        {t('common.cancel')}
                         </Button>
                     </DialogClose>
                     <Button
@@ -473,12 +475,12 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
                         {isUploading ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            업로드 중...
+                            {t('admin.uploading')}
                         </>
                         ) : (
                         <>
                             <UploadCloud className="mr-2 h-4 w-4" />
-                            질문 업로드
+                            {t('admin.uploadQuestions')}
                         </>
                         )}
                     </Button>
@@ -491,7 +493,7 @@ const AdminUploadDialog: React.FC<AdminUploadDialogProps> = ({ isOpen, onOpenCha
              <DialogFooter className="px-6 pb-6 pt-4 border-t">
                  <DialogClose asChild>
                      <Button type="button" variant="outline">
-                         취소
+                         {t('common.cancel')}
                      </Button>
                  </DialogClose>
                  {/* Optionally disable auth button here too if needed */}

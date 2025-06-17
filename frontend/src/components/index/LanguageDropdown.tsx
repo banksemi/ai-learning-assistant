@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Globe } from 'lucide-react';
 import { Language } from '@/types';
+import { useTranslation } from '@/translations';
 
 interface LanguageDropdownProps {
   language: Language;
@@ -18,13 +19,10 @@ interface LanguageDropdownProps {
 }
 
 const LanguageDropdown: React.FC<LanguageDropdownProps> = ({ language, onLanguageChange }) => {
+  const { t } = useTranslation();
+
   const getDisplayLanguage = () => {
-    switch (language) {
-      case 'ko': return '한국어';
-      case 'ja': return '日本語';
-      case 'zh': return '中文';
-      default: return 'English';
-    }
+    return t(`common.languageNames.${language}`);
   };
 
   const displayLanguage = getDisplayLanguage();
@@ -38,13 +36,13 @@ const LanguageDropdown: React.FC<LanguageDropdownProps> = ({ language, onLanguag
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-40" align="end">
-        <DropdownMenuLabel>언어 / Language</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('common.language')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuRadioGroup value={language} onValueChange={(value) => onLanguageChange(value as Language)}>
-          <DropdownMenuRadioItem value="ko">한국어</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="en">English</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="ja">日本語</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="zh">中文</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="ko">{t('common.languageNames.ko')}</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="en">{t('common.languageNames.en')}</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="ja">{t('common.languageNames.ja')}</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="zh">{t('common.languageNames.zh')}</DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>
