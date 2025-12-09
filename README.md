@@ -2,8 +2,6 @@
 
 Supercharge your studies with AI. Turn any question dump into a personal learning assistant, available anytime, anywhere.
 
-Demo Site: https://learning.ai.easylab.kr/
-
 ## Screenshots
 
 | ![Screenshot 1](https://github.com/banksemi/ai-learning-assistant/blob/main/screenshots/1.png?raw=true) | ![Screenshot 2](https://github.com/banksemi/ai-learning-assistant/blob/main/screenshots/2.png?raw=true) |
@@ -20,7 +18,7 @@ This is an AI-integrated question bank application. It transforms a simple quest
         - Enjoy a seamless experience without waiting for translations.
         - While you are solving a question, the server pre-fetches and caches translations for the upcoming questions.
         - It includes robust handling for concurrency issues like the "Cache Stampede" to ensure stable performance.
-        - **Note:**A short wait is expected for the first question's translation. This is a deliberate design choice to avoid unnecessary LLM calls by not pre-translating the entire test at once.
+        - Note: A short wait is expected for the first question's translation. This is a deliberate design choice to avoid unnecessary LLM calls by not pre-translating the entire test at once.
 - **Responsive Layout & Mobile Support**
     - The app features a responsive layout and is available as a mobile-friendly web app. Study without constraints of time or place, right from your device.
 - **Per-Question AI Assistant**
