@@ -14,7 +14,7 @@ COPY src ./src
 
 RUN ./gradlew bootJar --no-daemon
 
-FROM openjdk:21-jdk-slim
+FROM amazoncorretto:21-alpine
 
 WORKDIR /app
 COPY --from=builder /workspace/build/libs/*.jar app.jar
