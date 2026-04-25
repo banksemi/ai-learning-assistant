@@ -1,4 +1,6 @@
+import { useCallback } from 'react';
 import { Language } from '@/types';
+import { useQuiz } from '@/context/QuizContext';
 
 // Import all language files
 import en from './en';
@@ -42,11 +44,6 @@ export const getTranslation = (key: string, language: Language): string => {
 };
 
 /**
- * Create a React hook to use translations
- */
-import { useQuiz } from '@/context/QuizContext';
-
-/**
  * Format a translation string with variables
  * @param text The translation string with placeholders like {variable}
  * @param variables Object containing the variables to replace
@@ -73,10 +70,10 @@ export const useTranslation = () => {
    * @param variables Optional variables to format the translation
    * @returns The translated string
    */
-  const t = (key: string, variables?: Record<string, any>): string => {
+  const t = useCallback((key: string, variables?: Record<string, any>): string => {
     const translation = getTranslation(key, language);
     return variables ? formatTranslation(translation, variables) : translation;
-  };
+  }, [language]);
 
   return {
     t,
