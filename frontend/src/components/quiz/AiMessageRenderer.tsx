@@ -25,9 +25,8 @@ interface AiMessageRendererProps {
 const AiMessageRenderer: React.FC<AiMessageRendererProps> = ({ message, isStreaming, language, speed }) => {
   const { t } = useTranslation();
 
-  const displayText = isStreaming && message.sender === 'ai'
-    ? useTypingEffect(message.text, speed)
-    : message.text;
+  const typedText = useTypingEffect(message.text, speed);
+  const displayText = isStreaming && message.sender === 'ai' ? typedText : message.text;
 
   const showLoading = isStreaming && message.sender === 'ai' && displayText === '';
 
