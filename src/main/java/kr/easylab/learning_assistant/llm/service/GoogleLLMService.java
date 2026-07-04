@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.codec.ServerSentEvent;
@@ -33,6 +34,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@ConditionalOnProperty(prefix = "llm", name = "provider", havingValue = "google")
 @Slf4j
 public class GoogleLLMService implements LLMService {
     private final String baseURL;

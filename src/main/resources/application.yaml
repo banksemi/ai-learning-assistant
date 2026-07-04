@@ -27,10 +27,15 @@ logging:
     org.hibernate.SQL: debug
 
 llm:
+  provider: "${LLM_PROVIDER:google}"
   google:
     base_url: "${GOOGLE_BASE_URL:https://generativelanguage.googleapis.com}"
     api_key: "${GOOGLE_API_KEY:key}"
     model: "${GOOGLE_MODEL:gemini-2.5-flash}"
+  anthropic:
+    base_url: "${ANTHROPIC_BASE_URL:https://api.anthropic.com}"
+    api_key: "${ANTHROPIC_API_KEY:key}"
+    model: "${ANTHROPIC_MODEL:claude-sonnet-5}"
 
 cors_origin: "${CORS_ORIGIN:http://localhost:8100}"
 
